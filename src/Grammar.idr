@@ -59,7 +59,7 @@ seq t1 t2 =
             else t2.follow         
         }
     )
-  else Left "Given grammar is confusing!"
+  else Left "Given grammar is not separate"
 
 export
 nonOverlapping : GT -> GT -> Bool
@@ -79,15 +79,15 @@ alt t1 t2 =
         }
     )
   else 
-    Left "Given grammar is confusing!"
+    Left "Given grammar is overlapping"
 
 
 export
 fix : (GT -> GT) -> GT 
-fix f = fix_helper bot 
+fix f = fixHelper bot 
 
   where
-    fix_helper : GT -> GT 
-    fix_helper t = 
+    fixHelper : GT -> GT 
+    fixHelper t = 
       let t' = f t in 
-      if t' == t then t else fix_helper t'
+      if t' == t then t else fixHelper t'
