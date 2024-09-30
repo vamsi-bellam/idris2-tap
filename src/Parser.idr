@@ -1,82 +1,139 @@
 module Parser 
 
-public export
-data Parser : (a : Type) -> Type where 
-    MkParser : (List Char -> (Maybe a, List Char)) -> Parser a
+import Grammar
+import Data.SortedSet
+import Data.List
+import Data.Ref
+
+
+record Parser a where 
+  constructor MkParser 
+  gt : Either String GT
+  parse : List Char -> Either String (a , List Char)
+
 
 export
-parse : Parser a -> List Char -> (Maybe a, List Char)
-parse (MkParser f) cs = f cs
+parse' : Parser a -> List Char -> Either String (a , List Char)
+parse' (MkParser gt p) cs = p cs
 
 
 
-matchChar : Char -> List Char -> (Maybe Char, List Char)
-matchChar c cs = 
-  case cs of 
-    [] => (Nothing, cs)
-    (x :: xs) => if x == c then (Just x, xs) else (Nothing, cs)
+matchChar : Char -> List Char -> Either String (Char , List Char)
+matchChar c [] = Left "No more characters to parse"
+matchChar c cs@(x :: xs) = if x == c then Right (x, xs) else Left "Parser failed"
 
 export
 chr : Char -> Parser Char
-chr c = MkParser (matchChar c)
+chr c = 
+  MkParser
+    { gt = Right (char c)
+    , parse  = matchChar c
+    }
+    
+
+-- epsParser : List Char -> (Maybe () , List Char)
+-- epsParser [] = (Just (), [])
+-- epsParser (x :: xs) = ?feps
 
 export
 eps : Parser ()
-eps = MkParser (\cs => (Just (), cs))
+eps = 
+  MkParser
+    { gt = Right eps
+    , parse  = (\cs => Right ((), cs))
+    }
+    
 
 export
 bot : Parser a
-bot = MkParser (\cs => (Nothing, cs))
-
-seq_helper : Parser a -> Parser b -> List Char -> (Maybe (a, b), List Char)
-seq_helper x y cs = 
-  case parse x cs of 
-    (Nothing, cs) => (Nothing, cs)
-    (Just x, xs) => case parse y xs of 
-                      (Nothing, xs) => (Nothing, cs)
-                      (Just y, ys) => (Just (x, y), ys)
+bot = 
+  MkParser
+    { gt =  Right bot
+    , parse  = (\cs => Left "Failed parser")
+    }
 
 export
-seq : Parser a -> Parser b -> Parser (a ,  b)
-seq x y = MkParser (seq_helper x y)
+seq : Parser a -> Parser b -> Parser (a, b)
+seq (MkParser gt1 parse1) (MkParser gt2 parse2) =
+  MkParser
+    {
+      gt = do 
+              g1 <- gt1 
+              g2 <- gt2 
+              seq g1 g2
+    , parse = (\cs => 
+                    do 
+                        (a, rest) <- parse1 cs 
+                        (b, rest) <- parse2 rest
+                        Right ((a, b), rest))
+    }
 
-alt_helper : Parser a -> Parser a -> List Char -> (Maybe a, List Char)
-alt_helper x y cs = 
-  case (parse x cs) of 
-    (Nothing, _) => parse y cs
-    _ => parse x cs
+alt_parse : (List Char -> Either String (a, List Char)) 
+      -> (List Char -> Either String (a, List Char))
+      -> List Char -> Char -> GT -> GT -> Either String (a, List Char)
+alt_parse f g cs c x y = 
+  if contains c x.first then 
+    f cs
+  else if contains c y.first then
+    g cs
+  else if x.null then
+    f cs 
+  else if y.null then
+    g cs 
+  else 
+    Left "Parser failed!!"                
 
 export
 alt : Parser a -> Parser a -> Parser a
-alt x y = MkParser (alt_helper x y)
+alt (MkParser gt1 parse1) (MkParser gt2 parse2) =
+  MkParser 
+    {
+      gt = do 
+              g1 <- gt1 
+              g2 <- gt2 
+              alt g1 g2
+    , parse = (\cs => 
+                  case head' cs of 
+                    Just hd => do 
+                                  g1 <- gt1 
+                                  g2 <- gt2 
+                                  alt_parse parse1 parse2 cs hd g1 g2
+
+                    Nothing => Left "Nothing to parse!")
+    }
 
 
-
-map_helper : Parser a -> (a -> b) -> List Char -> (Maybe b, List Char)
-map_helper x f cs = 
-  case parse x cs of
-    (Nothing, z) => (Nothing, z)
-    ((Just y), z) => (Just (f y), z)
 
 export
 map : (a -> b) -> Parser a -> Parser b
-map f pa = MkParser (map_helper pa f)
+map f (MkParser gt parse) = 
+  MkParser 
+    {
+      gt = gt
+    , parse = (\cs => 
+                  do 
+                    (a, rest) <- parse cs
+                    Right (f a, rest))
+    }
 
-
-Eq (Parser a) where
-  (MkParser f) == (MkParser g) = ?llk
-
-fix_helper : (Parser a -> Parser a) -> Parser a
-fix_helper f = loop bot 
-
-  where 
-    loop : Parser a -> Parser a 
-    loop t = if f t == t then f t else t 
-
+fix' : ((a -> a) -> a -> a) -> a -> a
+fix' f x = f (fix' f) x
 
 export
-fix : ((Parser a -> Parser b) -> Parser a -> Parser b) -> Parser a -> Parser b
-fix f x = f (fix f) x
+fix'' : ((Parser a -> Parser a) -> Parser a -> Parser a) -> Parser a -> Parser a
+fix'' f x = ?lll
+
+export
+fix : (Parser a -> Parser a) -> Parser a
+fix f =
+  let h : Parser a
+      h = f (MkParser
+          {
+            -- update to correct grammar
+            gt = Right (char 'a')
+          , parse = (\cs => h.parse cs)
+          })
+  in h
 
 export
 any : List (Parser a) -> Parser a 
@@ -90,6 +147,36 @@ always : a -> a -> a
 always x = \_ => x
 
 star : Parser a -> Parser (List a)
-star g = fix (\f => \x => 
-          any [map (\y => []) eps, map (\l => fst l :: snd l) (seq x (f x))]) g
+star x = fix (\f => alt (map (\y => []) eps) (map (\(c, cs) => c :: cs) (seq x f)))
+-- star = 
+--   fix (\f => \x =>
+--     MkPT 
+--       {
+--         gt = ?gt_fix
+--       , parse = ?llkkk
+--       })
+-- star = fix (\f => \x => 
+--           alt (map (\y => []) eps) (map (\l => fst l :: snd l) (seq x (f x))))
+
+
+-- fix_lazy : Lazy((Parser a  -> Parser b) -> Parser a  -> Parser b) 
+--           -> Parser a -> Parser b
+-- fix_lazy f = f (fix_lazy (Delay f))
+
+
+-- star_lazy : Parser a -> Parser (List a)
+-- star_lazy = fix_lazy (\f => \x => 
+--               any   
+--               [ map (\y => []) eps
+--               , map (\l => fst l :: snd l) (seq x (f x))
+--               ]
+--             )
+
+-- -- star_lazy : Parser a -> Parser (List a)
+-- -- star_lazy = fix_lazy (\f => \x => 
+-- --               any   
+-- --               [ 
+-- --                 map (\y => [y]) x
+-- --               ]
+-- --             )
 

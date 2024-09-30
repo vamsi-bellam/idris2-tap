@@ -41,14 +41,16 @@ bot =
     }
 
 
+export
 separate : GT -> GT -> Bool
 separate t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
+
 export
-seq : GT -> GT -> Maybe GT
+seq : GT -> GT -> Either String GT
 seq t1 t2 = 
   if separate t1 t2 then 
-    Just(
+    Right(
       MkGT
         { null  = t1.null && t2.null
         , first = if t1.null then union t1.first t2.first else t1.first
@@ -57,25 +59,27 @@ seq t1 t2 =
             else t2.follow         
         }
     )
-  else Nothing
+  else Left "Given grammar is confusing!"
 
+export
 nonOverlapping : GT -> GT -> Bool
 nonOverlapping t1 t2 = 
   not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
 
 export 
-alt : GT -> GT -> Maybe GT
+alt : GT -> GT -> Either String GT
 alt t1 t2 = 
   if nonOverlapping t1 t2 then 
-    Just(
+    Right(
       MkGT
         { null  = t1.null || t2.null
         , first = union t1.first t2.first
         , follow = union t1.follow t2.follow   
         }
     )
-  else Nothing
+  else 
+    Left "Given grammar is confusing!"
 
 
 export
