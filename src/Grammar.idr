@@ -83,11 +83,11 @@ alt t1 t2 =
 
 
 export
-fix : (GT -> GT) -> GT 
-fix f = fixHelper bot 
+fix : (Either String GT -> Either String GT) -> Either String GT 
+fix f = fixHelper (Right bot) 
 
   where
-    fixHelper : GT -> GT 
+    fixHelper : Either String GT -> Either String GT 
     fixHelper t = 
       let t' = f t in 
       if t' == t then t else fixHelper t'

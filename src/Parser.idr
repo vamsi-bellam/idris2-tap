@@ -28,8 +28,8 @@ chr c =
   where 
     matchChar : Char -> List Char -> Either String (Char , List Char)
     matchChar c [] = Left "Parser failed"
-    matchChar c cs@(x :: xs) = 
-      if x == c then Right (x, xs) else Left "Parser failed"
+    matchChar c (x :: xs) = 
+      if x == c then Right (x, xs) else Left "Parser failed!"
     
 export
 eps : Parser ()
@@ -122,13 +122,12 @@ map f (MkParser gt parse) =
 export
 fix : (Parser a -> Parser a) -> Parser a
 fix f =
-  let g : Either String GT -> Either String GT
+  let g : Either String GT  -> Either String GT
       g t = (f ({gt := t} bot)).gt in 
   let appliedParser : Parser a
       appliedParser = f (MkParser
           {
-            -- update this to use fix from Grammar
-            gt = Right (char 'a')
+            gt = (Grammar.fix g)
           , parse = (\cs => appliedParser.parse cs)
           })
   in appliedParser
@@ -153,7 +152,7 @@ star x =
       )
 
 
--- Example 
+-- Examples
 
 lower : Parser Char 
 lower = charset "abcdefghijklmnopqrstuvwxyz"
