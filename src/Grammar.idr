@@ -9,9 +9,19 @@ record GT where
   first : SortedSet Char
   follow : SortedSet Char
 
+export
 Eq GT where 
   t1 == t2 = 
     t1.null == t2.null && t1.first == t2.first && t1.follow == t2.follow
+
+export
+Show GT where 
+  show (MkGT null first follow) = 
+    """
+    { null : \{show null}
+    , first : \{show first}
+    , follow : \{show follow}
+    """
 
 export
 char : Char -> GT
@@ -42,35 +52,37 @@ bot =
 
 
 export
-separate : GT -> GT -> Bool
-separate t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
+apart : GT -> GT -> Bool
+apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
 
 export
 seq : GT -> GT -> Either String GT
 seq t1 t2 = 
-  if separate t1 t2 then 
+  if apart t1 t2 then 
     Right(
       MkGT
-        { null  = t1.null && t2.null
-        , first = if t1.null then union t1.first t2.first else t1.first
+        { null = False
+          -- null  = t1.null && t2.null
+        , first = t1.first
+          -- first = if t1.null then union t1.first t2.first else t1.first
         , follow = 
             if t2.null then union t2.follow (union t2.first t1.follow)
             else t2.follow         
         }
     )
-  else Left "Given grammar is not separate"
+  else Left "Concatenated languages can't be uniquely broken!"
 
 export
-nonOverlapping : GT -> GT -> Bool
-nonOverlapping t1 t2 = 
+disjoint : GT -> GT -> Bool
+disjoint t1 t2 = 
   not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
 
 export 
 alt : GT -> GT -> Either String GT
 alt t1 t2 = 
-  if nonOverlapping t1 t2 then 
+  if disjoint t1 t2 then 
     Right(
       MkGT
         { null  = t1.null || t2.null
@@ -79,7 +91,7 @@ alt t1 t2 =
         }
     )
   else 
-    Left "Given grammar is overlapping"
+    Left "Languages are not disjoint!"
 
 
 export

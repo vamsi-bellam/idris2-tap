@@ -4,17 +4,18 @@ import Grammar
 import Data.SortedSet
 import Data.List
 
--- mkParserType : Type -> Type 
--- mkParserType a = List Char -> Either String (a , List Char)
+Parse : Type -> Type 
+Parse a  = List Char -> Either String (a , List Char)
+
 
 record Parser a where 
   constructor MkParser 
   gt : Either String GT
-  parse : List Char -> Either String (a , List Char)
+  parse : Parse a
 
 
 export
-applyParser : Parser a -> List Char -> Either String (a , List Char)
+applyParser : Parser a -> Parse a
 applyParser (MkParser gt p) cs = p cs
 
 export
@@ -26,7 +27,7 @@ chr c =
     }
   
   where 
-    matchChar : Char -> List Char -> Either String (Char , List Char)
+    matchChar : Char -> Parse Char
     matchChar c [] = Left "Parser failed"
     matchChar c (x :: xs) = 
       if x == c then Right (x, xs) else Left "Parser failed!"
@@ -81,9 +82,8 @@ alt (MkParser gt1 parser1) (MkParser gt2 parser2) =
     }
 
   where 
-    altParse : (List Char -> Either String (a, List Char)) 
-              -> (List Char -> Either String (a, List Char))
-              -> List Char -> Char -> GT -> GT -> Either String (a, List Char)
+    altParse : Parse a -> Parse a -> List Char -> Char -> GT -> GT 
+              -> Either String (a, List Char)
     altParse f g cs c x y = 
       if contains c x.first then 
         f cs
@@ -96,16 +96,15 @@ alt (MkParser gt1 parser1) (MkParser gt2 parser2) =
       else 
         Left "Parser failed!!"                
 
-    altParse2 : (List Char -> Either String (a, List Char)) 
-                -> (List Char -> Either String (a, List Char))
-                -> List Char -> GT -> GT -> Either String (a, List Char)
+    altParse2 : Parse a -> Parse a -> List Char -> GT -> GT  
+              -> Either String (a, List Char)
     altParse2 f g cs x y = 
       if x.null then 
         f cs 
       else if y.null then 
         g cs
       else 
-        Left "Parser failed!!"
+        Left "Unexpected end of stream"
 
 export
 map : (a -> b) -> Parser a -> Parser b
@@ -127,7 +126,7 @@ fix f =
   let appliedParser : Parser a
       appliedParser = f (MkParser
           {
-            gt = (Grammar.fix g)
+            gt = fix g
           , parse = (\cs => appliedParser.parse cs)
           })
   in appliedParser
@@ -182,7 +181,7 @@ data Sexp = Sym | Seq (List Sexp)
 paren : Parser a -> Parser a
 paren p = map (\(_, (a, _)) => a) (seq lparen (seq p rparen))
 
-sexp : Parser Sexp
+sexp : Parser Sexp 
 sexp = fix (\f => 
             any 
               [
