@@ -1,6 +1,6 @@
 module Parser 
 
-import Grammar
+import Tp
 import Data.SortedSet
 import Data.List
 
@@ -10,13 +10,15 @@ Parse a  = List Char -> Either String (a , List Char)
 
 record Parser a where 
   constructor MkParser 
-  gt : Either String GT
+  gt : Either String TP
   parse : Parse a
 
 
 export
 applyParser : Parser a -> Parse a
-applyParser (MkParser gt p) cs = p cs
+applyParser (MkParser gt p) cs = do 
+                                    _ <- gt 
+                                    p cs
 
 export
 chr : Char -> Parser Char
@@ -82,7 +84,7 @@ alt (MkParser gt1 parser1) (MkParser gt2 parser2) =
     }
 
   where 
-    altParse : Parse a -> Parse a -> List Char -> Char -> GT -> GT 
+    altParse : Parse a -> Parse a -> List Char -> Char -> TP -> TP 
               -> Either String (a, List Char)
     altParse f g cs c x y = 
       if contains c x.first then 
@@ -94,9 +96,9 @@ alt (MkParser gt1 parser1) (MkParser gt2 parser2) =
       else if y.null then
         g cs 
       else 
-        Left "Parser failed!!"                
+        Left "No Progress possible, unexpected token"                
 
-    altParse2 : Parse a -> Parse a -> List Char -> GT -> GT  
+    altParse2 : Parse a -> Parse a -> List Char -> TP -> TP  
               -> Either String (a, List Char)
     altParse2 f g cs x y = 
       if x.null then 
@@ -121,7 +123,7 @@ map f (MkParser gt parse) =
 export
 fix : (Parser a -> Parser a) -> Parser a
 fix f =
-  let g : Either String GT  -> Either String GT
+  let g : Either String TP  -> Either String TP
       g t = (f ({gt := t} bot)).gt in 
   let appliedParser : Parser a
       appliedParser = f (MkParser
@@ -141,6 +143,15 @@ charset str = any (map chr (unpack str))
 always : a -> b -> a
 always x = \_ => x
 
+star' : Parser a -> Parser (List a)
+star' x = 
+  fix (\f => 
+        any 
+          [ map (always []) eps
+          , map (\(c, cs) => c :: cs) (seq x f)
+          ] 
+      )
+
 star : Parser a -> Parser (List a)
 star x = 
   fix (\f => 
@@ -149,6 +160,29 @@ star x =
           , map (\(c, cs) => c :: cs) (seq x f)
           ] 
       )
+
+-- star p = 
+--   MkParser
+--     { gt = do 
+--               g <- p.gt
+--               star g
+--     , parse = \cs => do 
+--                         g <- p.gt 
+--                         starHelper p.parse g cs []
+--     }
+
+--   where 
+--     starHelper : Parse a -> TP -> List Char -> List a 
+--                 -> Either String (List a, List Char)
+--     starHelper f g cs acc = 
+--       case (head' cs) of 
+--         Just hd =>  if (not (contains hd g.first)) then 
+--                       Right (reverse acc, cs)
+--                     else 
+--                       do 
+--                         (a, rest) <- f cs 
+--                         starHelper f g rest (a :: acc)
+--         Nothing => Right (reverse acc, cs)
 
 
 -- Examples
@@ -179,7 +213,10 @@ token = any [symbol, lparen, rparen]
 data Sexp = Sym | Seq (List Sexp)
 
 paren : Parser a -> Parser a
-paren p = map (\(_, (a, _)) => a) (seq lparen (seq p rparen))
+paren p = map (\((_, a), _) => a) (seq (seq lparen p) rparen)
+
+-- exParen : Parser (List (Char, Char))
+-- exParen = star (paren (seq (chr 'a') (alt (chr 'b') (chr 'c')) ))
 
 sexp : Parser Sexp 
 sexp = fix (\f => 

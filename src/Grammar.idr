@@ -1,105 +1,37 @@
 module Grammar
 
-import Data.SortedSet
+import Tp
+import Env 
 
-public export
-record GT where 
-  constructor MkGT
-  null : Bool
-  first : SortedSet Char
-  follow : SortedSet Char
-
-export
-Eq GT where 
-  t1 == t2 = 
-    t1.null == t2.null && t1.first == t2.first && t1.follow == t2.follow
-
-export
-Show GT where 
-  show (MkGT null first follow) = 
-    """
-    { null : \{show null}
-    , first : \{show first}
-    , follow : \{show follow}
-    """
-
-export
-char : Char -> GT
-char c = 
-  MkGT
-    { null  = False
-    , first = insert c empty 
-    , follow = empty 
-    }
-
-export
-eps : GT 
-eps =
-  MkGT
-    { null  = True
-    , first = empty
-    , follow = empty 
-    }
-
-export 
-bot : GT 
-bot = 
-  MkGT
-    { null  = False
-    , first = empty
-    , follow = empty 
-    }
+data GT : ctx -> a -> d -> Type where 
+  Eps : a -> GT ctx a d
+  Seq : GT ctx a d -> GT ctx b d -> GT ctx (a, b) d
+  Chr : Char -> GT ctx Char d
+  Bot : GT ctx a d
+  Alt : GT ctx a d -> GT ctx a d -> GT ctx a d
+  Map : (a -> b) -> GT ctx a d -> GT ctx b d
+  Fix : GT ctx a d -> GT ctx a d
+  Var : Env.Var ctx a -> GT ctx a d
 
 
-export
-apart : GT -> GT -> Bool
-apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
 
-export
-seq : GT -> GT -> Either String GT
-seq t1 t2 = 
-  if apart t1 t2 then 
-    Right(
-      MkGT
-        { null = False
-          -- null  = t1.null && t2.null
-        , first = t1.first
-          -- first = if t1.null then union t1.first t2.first else t1.first
-        , follow = 
-            if t2.null then union t2.follow (union t2.first t1.follow)
-            else t2.follow         
-        }
-    )
-  else Left "Concatenated languages can't be uniquely broken!"
+typeof : Env ctx -> GT ctx a d -> Either String (TP , GT ctx a d)
+typeof env (Eps y) = Right (eps, Eps y)
+typeof env (Seq y z) = ?typeof_rhs_1
+typeof env (Chr c) = Right (char c, Chr c)
+typeof env Bot = Right (bot, Bot)
+typeof env (Alt g1 g2) = 
+  do 
+    g1' <- typeof env g1 
+    g2' <- typeof env g2
+    altRes <- alt (fst g1') (fst g2') 
+    Right (altRes, Alt g1 g2)
 
-export
-disjoint : GT -> GT -> Bool
-disjoint t1 t2 = 
-  not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
+typeof env (Map f g) = 
+  do  
+    g' <- typeof env g 
+    Right (fst g', Map f g)
 
-
-export 
-alt : GT -> GT -> Either String GT
-alt t1 t2 = 
-  if disjoint t1 t2 then 
-    Right(
-      MkGT
-        { null  = t1.null || t2.null
-        , first = union t1.first t2.first
-        , follow = union t1.follow t2.follow   
-        }
-    )
-  else 
-    Left "Languages are not disjoint!"
-
-
-export
-fix : (Either String GT -> Either String GT) -> Either String GT 
-fix f = fixHelper (Right bot) 
-
-  where
-    fixHelper : Either String GT -> Either String GT 
-    fixHelper t = 
-      let t' = f t in 
-      if t' == t then t else fixHelper t'
+typeof x (Fix y) = ?typeof_rhs_6
+typeof env (Var n) = Right (lookup env n, Var n)
