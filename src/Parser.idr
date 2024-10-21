@@ -1,6 +1,6 @@
 module Parser 
 
-import Tp
+import Language
 import Data.SortedSet
 import Data.List
 
@@ -10,8 +10,8 @@ Parse a  = List Char -> Either String (a , List Char)
 
 record Parser a where 
   constructor MkParser 
-  gt : Either String TP
-  parse : Parse a
+  gt : Either String LangType
+  parse : Lazy (Parse a)
 
 
 export
@@ -84,7 +84,7 @@ alt (MkParser gt1 parser1) (MkParser gt2 parser2) =
     }
 
   where 
-    altParse : Parse a -> Parse a -> List Char -> Char -> TP -> TP 
+    altParse : Parse a -> Parse a -> List Char -> Char -> LangType -> LangType 
               -> Either String (a, List Char)
     altParse f g cs c x y = 
       if contains c x.first then 
@@ -98,7 +98,7 @@ alt (MkParser gt1 parser1) (MkParser gt2 parser2) =
       else 
         Left "No Progress possible, unexpected token"                
 
-    altParse2 : Parse a -> Parse a -> List Char -> TP -> TP  
+    altParse2 : Parse a -> Parse a -> List Char -> LangType -> LangType  
               -> Either String (a, List Char)
     altParse2 f g cs x y = 
       if x.null then 
@@ -123,7 +123,7 @@ map f (MkParser gt parse) =
 export
 fix : (Parser a -> Parser a) -> Parser a
 fix f =
-  let g : Either String TP  -> Either String TP
+  let g : Either String LangType  -> Either String LangType
       g t = (f ({gt := t} bot)).gt in 
   let appliedParser : Parser a
       appliedParser = f (MkParser
@@ -172,7 +172,7 @@ star x =
 --     }
 
 --   where 
---     starHelper : Parse a -> TP -> List Char -> List a 
+--     starHelper : Parse a -> LangType -> List Char -> List a 
 --                 -> Either String (List a, List Char)
 --     starHelper f g cs acc = 
 --       case (head' cs) of 

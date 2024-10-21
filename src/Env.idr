@@ -1,5 +1,5 @@
 module Env
-import Tp
+import Language
 
 
 export
@@ -10,14 +10,14 @@ data Var : ctx -> a -> Type where
 export
 data Env : ctx -> Type where 
     Nil : Env ()
-    (::) : Tp.TP -> Env ctx -> Env (Tp.TP, ctx)
+    (::) : LangType -> Env ctx -> Env (LangType, ctx)
 
 export
-lookup : Env ctx -> Var ctx a -> Tp.TP
+lookup : Env ctx -> Var ctx a -> LangType
 lookup (x :: _) Z = x
 lookup (_ :: xs) (S n) = lookup xs n
 
 export
-map : (Tp.TP -> Tp.TP) -> Env ctx -> Env ctx
+map : (LangType -> LangType) -> Env ctx -> Env ctx
 map f [] = []
 map f (x :: xs) = f x :: map f xs

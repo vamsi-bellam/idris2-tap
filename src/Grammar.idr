@@ -1,6 +1,6 @@
 module Grammar
 
-import Tp
+import Language
 import Env 
 
 data GT : ctx -> a -> d -> Type where 
@@ -16,7 +16,7 @@ data GT : ctx -> a -> d -> Type where
 
 
 
-typeof : Env ctx -> GT ctx a d -> Either String (TP , GT ctx a d)
+typeof : Env ctx -> GT ctx a d -> Either String (LangType , GT ctx a d)
 typeof env (Eps y) = Right (eps, Eps y)
 typeof env (Seq y z) = ?typeof_rhs_1
 typeof env (Chr c) = Right (char c, Chr c)

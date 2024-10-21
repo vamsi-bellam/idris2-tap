@@ -1,23 +1,23 @@
-module Tp
+module Language
 
 import Data.SortedSet
 
 public export
-record TP where 
-  constructor MkGT
+record LangType where 
+  constructor MkLangType
   null : Bool
   first : SortedSet Char
   follow : SortedSet Char
   guarded : Bool
 
 export
-Eq TP where 
+Eq LangType where 
   t1 == t2 = 
     t1.null == t2.null && t1.first == t2.first && t1.follow == t2.follow
 
 export
-Show TP where 
-  show (MkGT null first follow guarded) = 
+Show LangType where 
+  show (MkLangType null first follow guarded) = 
     """
     { null : \{show null}
     , first : \{show first}
@@ -28,9 +28,9 @@ Show TP where
     """
 
 export
-char : Char -> TP
+char : Char -> LangType
 char c = 
-  MkGT
+  MkLangType
     { null  = False
     , first = singleton c
     , follow = empty 
@@ -38,9 +38,9 @@ char c =
     }
 
 export
-eps : TP 
+eps : LangType 
 eps =
-  MkGT
+  MkLangType
     { null  = True
     , first = empty
     , follow = empty 
@@ -48,9 +48,9 @@ eps =
     }
 
 export 
-bot : TP 
+bot : LangType 
 bot = 
-  MkGT
+  MkLangType
     { null  = False
     , first = empty
     , follow = empty 
@@ -59,16 +59,16 @@ bot =
 
 
 export
-apart : TP -> TP -> Bool
+apart : LangType -> LangType -> Bool
 apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
 
 export
-seq : TP -> TP -> Either String TP
+seq : LangType -> LangType -> Either String LangType
 seq t1 t2 = 
   if apart t1 t2 then 
     Right(
-      MkGT
+      MkLangType
         { 
           null  = t1.null && t2.null
         , first = if t1.null then union t1.first t2.first else t1.first
@@ -86,17 +86,17 @@ seq t1 t2 =
             """)
 
 export
-disjoint : TP -> TP -> Bool
+disjoint : LangType -> LangType -> Bool
 disjoint t1 t2 = 
   not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
 
 export 
-alt : TP -> TP -> Either String TP
+alt : LangType -> LangType -> Either String LangType
 alt t1 t2 = 
   if disjoint t1 t2 then 
     Right(
-      MkGT
+      MkLangType
         { null  = t1.null || t2.null
         , first = union t1.first t2.first
         , follow = union t1.follow t2.follow  
@@ -112,7 +112,7 @@ alt t1 t2 =
           """)
 
 export
-star :  TP -> Either String TP
+star :  LangType -> Either String LangType
 star t = do 
             gt <- (seq t t)
             Right({null := True, follow := union t.first t.follow } gt)
@@ -120,11 +120,11 @@ star t = do
 
 
 export
-fix : (Either String TP -> Either String TP) -> Either String TP 
+fix : (Either String LangType -> Either String LangType) -> Either String LangType 
 fix f = fixHelper (Right ({guarded := False} bot)) 
 
   where
-    fixHelper : Either String TP -> Either String TP 
+    fixHelper : Either String LangType -> Either String LangType 
     fixHelper t = 
       let t' = f t in 
       if t' == t then t else fixHelper t'
