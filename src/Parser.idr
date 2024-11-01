@@ -15,6 +15,15 @@ record Parser a where
 
 
 export
+Show (Parser a) where 
+  show (MkParser gt parse) = 
+    """
+     gt : \{show gt}
+     parse : <func>
+     
+    """
+
+export
 applyParser : Parser a -> Parse a
 applyParser (MkParser gt p) cs = do 
                                     _ <- gt 
