@@ -1,23 +1,22 @@
 module Env
 import Language
 
+public export
+data Var : (ctx : Type) -> (a : Type) -> Type where
+  Z : Var (a, rest) a
+  S : Var rest a -> Var (b, rest) a
 
-export
-data Var : ctx -> a -> Type where 
-    Z : Var (a , ctx) a
-    S : Var rest a -> Var (a, rest) a
+public export
+data Env : (ctx : Type) -> Type where
+  Nil  : Env ()
+  (::) : a -> Env ctx -> Env (a, ctx)
 
-export
-data Env : ctx -> Type where 
-    Nil : Env ()
-    (::) : LangType -> Env ctx -> Env (LangType, ctx)
-
-export
-lookup : Env ctx -> Var ctx a -> LangType
-lookup (x :: _) Z = x
+public export
+lookup : Env ctx -> Var ctx a -> a
+lookup (x :: _)  Z = x
 lookup (_ :: xs) (S n) = lookup xs n
 
-export
-map : (LangType -> LangType) -> Env ctx -> Env ctx
-map f [] = []
-map f (x :: xs) = f x :: map f xs
+public export
+map : (f : forall a. a -> a) -> Env ctx -> Env ctx
+map fn [] = []
+map fn (x :: xs) = fn x :: map fn xs
