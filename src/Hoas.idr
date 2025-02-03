@@ -5,45 +5,57 @@ import Language
 import Data.So
 import Data.Fin
 import Data.Vect
+import Parser2
+import Decidable.Equality
+import Env
+
+public export
+data PEnv : Vect n Type -> Type where
+  Nil  : PEnv []
+  (::) : (a : Type) -> PEnv as -> PEnv (a :: as)
 
 
 HT : Type -> Type
-HT a = {n : Nat} -> Fin n -> Grammar n a
-
--- eps : a -> HT a
--- eps x n = MkGrammar bot (Eps x)
+HT a = {n : Nat} -> {ct : Vect n Type} -> PEnv ct -> Grammar ct a 
 
 eps : HT ()
-eps n = MkGrammar bot (Eps ())
+eps _ = MkGrammar bot (Eps ())
 
 char : Char -> HT Char
 char c _ = MkGrammar bot (Chr c)
 
 seq : HT a -> HT b -> HT (a, b)
-seq f g n = MkGrammar bot (Seq (f n) (g n))
+seq f g ct = MkGrammar bot (Seq (f ct) (g ct))
 
 bot : HT a
 bot _ = MkGrammar bot Bot
 
 alt : HT a -> HT a -> HT a
-alt f g n = MkGrammar bot (Alt (f n) (g n))
+alt f g ct = MkGrammar bot (Alt (f ct) (g ct))
 
-tshift : {a : Nat} -> {b : Nat} -> (j : Fin a) -> (l : Fin b) -> Fin a
-tshift FZ FZ = FZ
--- Need to prove this as impossible
-tshift FZ (FS x) = FZ
-tshift (FS x) FZ = FS x
-tshift (FS x) (FS y) = FS (tshift x y)
+tsh : (dlen : Nat) -> PEnv ct1 -> PEnv (a :: ct2) -> Var a ct1
+tsh dlen x y = ?tsh_rhs
 
+len : PEnv ct  -> Nat
+len [] = 0
+len (x :: y) = S (len y)
 
-fix : (HT a -> HT a) -> HT a
-fix f i = 
+diff : PEnv ct1 -> PEnv ct2 -> Nat
+diff c1 c2 = minus (len c1) (len c2) 
+  
+fix : {a : Type} -> (HT a -> HT a) -> HT a
+fix f ctx = 
+  let extendedCtx = (a :: ctx) in
   MkGrammar 
     bot 
-    (Fix ((f (\j => MkGrammar bot (Var (tshift j (FS i))))) (FS i)))
+    (Fix 
+      ((f 
+        (\ct => MkGrammar bot (Var (tsh (diff ct extendedCtx) ct extendedCtx)))
+        ) extendedCtx ))
+
 
 map : (a -> b) -> HT a -> HT b
-map f g n = MkGrammar bot (Map f (g n))
+map f g ct = MkGrammar bot (Map f (g ct))
 
 any : List (HT a) -> HT a
 any ls = foldl alt bot ls
@@ -51,7 +63,7 @@ any ls = foldl alt bot ls
 always : a -> b -> a
 always x = \_ => x
 
-star : HT a -> HT (List a)
+star : {a : Type} -> HT a -> HT (List a)
 star g = 
   fix (\f => 
         any 
@@ -61,8 +73,17 @@ star g =
       )
 
 
-typeCheck : HT a -> Either String (Grammar 1 a)
-typeCheck f = typeof [bot] (f FZ)
+-- typeCheck : {ct : Vect 1 Type} -> HT a -> Either String (Grammar ct a)
+-- typeCheck f = typeof [bot] (f ct) 
+
+
+-- p1 : Either String  (Grammar [Char] Char)
+-- p1 = typeCheck (alt (char 'a') (char 'b'))
+
+-- ap : {a : Type} -> HT a -> Either String (Parser a)
+-- ap p = do 
+--         g <- typeCheck {ct = [a]} p 
+--         Right (parse g (bot :: Parser2.Nil))
 
 
 -- examples 
@@ -76,35 +97,35 @@ lower = charset "abcdefghijklmnopqrstuvwxyz"
 upper : HT Char 
 upper = charset "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-word : HT (List Char)
-word = map (\(c, cs) => c :: cs) (seq upper (star lower))
+-- word : HT (List Char)
+-- word = map (\(c, cs) => c :: cs) (seq upper (star lower))
 
-data Token = SYMBOL (List Char) | LPAREN | RPAREN
+-- data Token = SYMBOL (List Char) | LPAREN | RPAREN
 
-symbol : HT Token
-symbol = map (\s => SYMBOL s) word
+-- symbol : HT Token
+-- symbol = map (\s => SYMBOL s) word
 
-lparen : HT Token
-lparen = map (always LPAREN) (char '(')
+-- lparen : HT Token
+-- lparen = map (always LPAREN) (char '(')
 
-rparen : HT Token
-rparen = map (always RPAREN) (char ')')
+-- rparen : HT Token
+-- rparen = map (always RPAREN) (char ')')
 
-token : HT Token
-token = any [symbol, lparen, rparen]
+-- token : HT Token
+-- token = any [symbol, lparen, rparen]
 
-data Sexp = Sym | Seq (List Sexp)
+-- data Sexp = Sym | Seq (List Sexp)
 
-paren : HT a -> HT a
-paren p = map (\((_, a), _) => a) (seq (seq lparen p) rparen)
+-- paren : HT a -> HT a
+-- paren p = map (\((_, a), _) => a) (seq (seq lparen p) rparen)
 
-exParen : HT (List (Char, Char))
-exParen = star (paren (seq (char 'a') (alt (char 'b') (char 'c')) ))
+-- exParen : HT (List (Char, Char))
+-- exParen = star (paren (seq (char 'a') (alt (char 'b') (char 'c')) ))
 
-sexp : HT Sexp 
-sexp = fix (\f => 
-            any 
-              [
-                map (always Sym) symbol
-              , map (\s => Seq s) (paren (star f))
-              ])
+-- sexp : HT Sexp 
+-- sexp = fix (\f => 
+--             any 
+--               [
+--                 map (always Sym) symbol
+--               , map (\s => Seq s) (paren (star f))
+--               ])
