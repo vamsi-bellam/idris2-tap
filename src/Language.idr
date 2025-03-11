@@ -23,8 +23,7 @@ Show LangType where
     , first : \{show first}
     , follow : \{show follow}
     , guarded : \{show guarded}
-    }
-    
+    } 
     """
 
 export
@@ -111,17 +110,18 @@ alt t1 t2 =
               are not disjoint!
           """)
 
-export
-star :  LangType -> Either String LangType
-star t = do 
-            gt <- (seq t t)
-            Right({null := True, follow := union t.first t.follow } gt)
-
-
+min : LangType
+min = 
+  MkLangType
+    { null  = False
+    , first = empty
+    , follow = empty 
+    , guarded = False
+    }
 
 export
 fix : (Either String LangType -> Either String LangType) -> Either String LangType 
-fix f = fixHelper (Right ({guarded := False} bot)) 
+fix f = fixHelper (Right min) 
 
   where
     fixHelper : Either String LangType -> Either String LangType 

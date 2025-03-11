@@ -56,9 +56,9 @@ mutual
 addGaurd : LangType -> LangType
 addGaurd lt = {guarded := True} lt
 
-vToF : {ct : Vect n Type} -> Var a ct -> Fin n
-vToF Z = FZ
-vToF (S x) = FS (vToF x)
+varToFin : {ct : Vect n Type} -> Var a ct -> Fin n
+varToFin Z = FZ
+varToFin (S x) = FS (varToFin x)
 
 public export
 typeof : {n : Nat} -> (env : Vect n LangType) ->  {ct : Vect n Type} 
@@ -94,12 +94,81 @@ typeof env (MkGrammar _ (Fix g)) =
                        lt' <- lt 
                        res <- (typeof (lt' :: env) g)
                        Right (res.lang))
-    (if (not l.guarded) then Left "Error!"
+    (if (not l.guarded) then (Left "Error!")
      else 
       do
         g' <- typeof (l :: env) g
         Right (MkGrammar g'.lang  (Fix g')))
 
-typeof env (MkGrammar _ (Var x)) = Right (MkGrammar (index (vToF x) env) (Var x))
+typeof env (MkGrammar _ (Var x)) = Right (MkGrammar (index (varToFin x) env) (Var x))
 
+export
+typeCheck : Grammar Nil a -> Either String (Grammar Nil a)
+typeCheck g = typeof [] g
+
+
+-- Examples 
+
+weakenGrammar : {z : Type} -> {ct : Vect len Type} -> Grammar ct k -> Grammar (z :: ct) k
+weakenGrammar (MkGrammar l g) = MkGrammar l (weakenGramType g)
+  where 
+    weakenGramType : {z : Type} -> {ct : Vect len Type} -> GrammarType ct h -> GrammarType (z :: ct) h
+    weakenGramType (Eps x) = Eps x
+    weakenGramType (Seq g1 g2) = Seq (weakenGrammar g1) (weakenGrammar g2)
+    weakenGramType (Chr c) = Chr c
+    weakenGramType Bot = Bot
+    weakenGramType (Alt g1 g2) = Alt (weakenGrammar g1) (weakenGrammar g2)
+    weakenGramType (Map f g) = Map f (weakenGrammar g)
+    weakenGramType (Fix {a = l} {ct = bt} g) = ?kkk
+    weakenGramType (Var v) = Var (S v) 
+
+export
+star : {a : Type} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
+star g = 
+  MkGrammar bot (Fix {a = List a} (star' g))
+  where
+    star' : Grammar ct a -> Grammar (List a :: ct) (List a)
+    star' g = 
+      MkGrammar bot 
+        (Alt 
+          (MkGrammar bot (Eps []))
+          (MkGrammar bot 
+            (Map (\(x, xs) => x :: xs) 
+              (MkGrammar bot 
+                (Seq 
+                  (weakenGrammar g)
+                  (MkGrammar bot (Var Z))
+                )))))
+
+export
+plusg : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
+plusg g = MkGrammar bot 
+          (Map (\(x, xs) => x :: xs) 
+            (MkGrammar bot (Seq g (star g))))
+
+
+export
+charSet : String -> Grammar ct Char
+charSet str =  (charSet' (unpack str))
+  where
+    charSet' : List Char -> Grammar ct Char
+    charSet' [] = MkGrammar bot Bot
+    charSet' (c :: cs) = 
+     MkGrammar bot (Alt (MkGrammar bot (Chr c)) (charSet' cs))
+
+export
+lower :  Grammar Nil Char
+lower = charSet "abcdefghijklmnopqrstuvwxyz"
+
+export
+upper : Grammar Nil Char
+upper = charSet "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+export
+lu : Grammar Nil Char 
+lu = MkGrammar bot (Alt lower upper)
+
+export 
+ex : Grammar Nil (List Char)
+ex = MkGrammar bot (Alt (star lower) (MkGrammar bot (Map (\(x) => [x]) upper)))
 

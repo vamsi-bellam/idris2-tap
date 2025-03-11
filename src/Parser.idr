@@ -6,6 +6,7 @@ import Language
 import Grammar
 import Env
 
+
 public export
 Parser : Type -> Type 
 Parser a  = List Char -> Either String (a , List Char)
@@ -15,8 +16,8 @@ bot : Parser a
 bot _ = Left "Impossible"
 
 public export
-eps : Either String (a , List Char) -> Parser a
-eps v _ = v
+eps : a -> Parser a
+eps v rest = Right (v, rest)
 
 public export
 chr : Char -> Parser Char
@@ -59,7 +60,7 @@ map f p cs =
 
 public export
 data ParseEnv : Vect n Type -> Type where
-  Nil  : ParseEnv []
+  Empty  : ParseEnv []
   (::) : Parser a -> ParseEnv as -> ParseEnv (a :: as)
 
 public export 
@@ -67,10 +68,15 @@ lookup : Var a ct -> ParseEnv ct -> Parser a
 lookup Z (x :: _ ) = x
 lookup (S k) (_ :: xs) = lookup k xs
 
+
+public export
+fix : (Parser a -> Parser a) -> Parser a
+fix f input = f (fix f) input
+
 -- Takes type checked grammar and produce the parser
 public export 
 parse : {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> ParseEnv ct -> Parser a
-parse (MkGrammar _ (Eps g)) penv = eps (Right (g, []))
+parse (MkGrammar _ (Eps g)) penv = eps g
 parse (MkGrammar _ (Seq g1 g2)) penv = 
   let p1 = parse g1 penv
       p2 = parse g2 penv
@@ -86,15 +92,20 @@ parse (MkGrammar _ (Alt g1 g2)) penv =
     alt g1.lang p1 g2.lang p2
 
 parse (MkGrammar _ (Map f g)) penv = map f (parse g penv)
-parse (MkGrammar _ (Fix g)) penv = ?fix_imp
+parse (MkGrammar _ (Fix g)) penv = fix (\p => parse g (p :: penv))
 parse (MkGrammar _ (Var var)) penv = lookup var penv
 
 
+generateParser : Grammar Nil a -> Either String (Parser a)
+generateParser gram = 
+  do 
+    typedGrammar <- typeCheck gram 
+    Right (parse typedGrammar Empty)
 
 public export
-applyParse : Either String (Parser Char) ->  
-            List Char -> Either String (Char , List Char)
-applyParse p cs = 
+runParser : Either String (Parser a) ->  
+            List Char -> Either String (a , List Char)
+runParser parser input = 
   do 
-    par <- p
-    par cs
+    parser <- parser
+    parser input
