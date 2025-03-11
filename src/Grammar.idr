@@ -22,35 +22,37 @@ mutual
     lang : LangType
     gram : GrammarType ct a
 
--- mutual
---   public export
---   showGrammar : Show a => (Grammar n a) -> String
---   showGrammar (MkGrammar lang gram) = 
---     """
---     { lang = \{show lang}
---     , gram = \{showGrammarType gram}
---     }
---     """
+mutual
+  public export
+  showGrammar : (Grammar n a) -> String
+  showGrammar (MkGrammar lang gram) = 
+    """
+    { lang = \{show lang}
+    , gram = \{showGrammarType gram}
+    }
+    """
 
---   public export
---   showGrammarType : Show a => (GrammarType n a) -> String
---   showGrammarType (Eps x) = "Eps \{show x}"
---   showGrammarType (Seq x y) = "Seq \{showGrammar x} \{showGrammar y}"
---   showGrammarType (Chr c) = "Chr \{show c}"
---   showGrammarType Bot = "Bot"
---   showGrammarType (Alt x y) = "Alt \{showGrammar x} \{showGrammar y}"
---   showGrammarType (Map f x) = "Map <func> \{showGrammar x}"
---   showGrammarType (Fix x) = "Fix \{showGrammar x}"
---   showGrammarType (Var x) = "Var \{show x}"
+  public export
+  showGrammarType : (GrammarType n a) -> String
+  -- Ideally, need to show x too, but that requires a to have Show interface 
+  -- implemented and have that constraint at the type level.
+  showGrammarType (Eps x) = "Eps <base_type>"
+  showGrammarType (Seq x y) = "Seq \{showGrammar x} \{showGrammar y}"
+  showGrammarType (Chr c) = "Chr \{show c}"
+  showGrammarType Bot = "Bot"
+  showGrammarType (Alt x y) = "Alt \{showGrammar x} \{showGrammar y}"
+  showGrammarType (Map f x) = "Map <func> \{showGrammar x}"
+  showGrammarType (Fix x) = "Fix \{showGrammar x}"
+  showGrammarType (Var x) = "Var \{show x}"
 
--- mutual 
---   public export
---   Show a => Show (Grammar n a) where 
---     show = showGrammar
+mutual 
+  public export
+  Show a => Show (Grammar n a) where 
+    show = showGrammar
 
---   public export
---   Show a => Show (GrammarType n a) where
---     show = showGrammarType
+  public export
+  Show a => Show (GrammarType n a) where
+    show = showGrammarType
 
 
 addGaurd : LangType -> LangType
@@ -61,8 +63,8 @@ varToFin Z = FZ
 varToFin (S x) = FS (varToFin x)
 
 public export
-typeof : {n : Nat} -> (env : Vect n LangType) ->  {ct : Vect n Type} 
-          -> Grammar ct a -> Either String (Grammar ct a)
+typeof : (env : Vect n LangType) ->  {ct : Vect n Type} -> Grammar ct a 
+        -> Either String (Grammar ct a)
 typeof env (MkGrammar _ (Eps x)) = Right (MkGrammar eps (Eps x))
 
 typeof env (MkGrammar _ (Seq g1 g2)) = 
@@ -108,11 +110,12 @@ typeCheck g = typeof [] g
 
 
 -- Examples 
-
-weakenGrammar : {z : Type} -> {ct : Vect len Type} -> Grammar ct k -> Grammar (z :: ct) k
+weakenGrammar : {z : Type} -> {ct : Vect len Type} -> Grammar ct k 
+                -> Grammar (z :: ct) k
 weakenGrammar (MkGrammar l g) = MkGrammar l (weakenGramType g)
   where 
-    weakenGramType : {z : Type} -> {ct : Vect len Type} -> GrammarType ct h -> GrammarType (z :: ct) h
+    weakenGramType : {z : Type} -> {ct : Vect len Type} -> GrammarType ct h 
+                      -> GrammarType (z :: ct) h
     weakenGramType (Eps x) = Eps x
     weakenGramType (Seq g1 g2) = Seq (weakenGrammar g1) (weakenGrammar g2)
     weakenGramType (Chr c) = Chr c
@@ -141,8 +144,8 @@ star g =
                 )))))
 
 export
-plusg : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
-plusg g = MkGrammar bot 
+plus : {a : Type} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
+plus g = MkGrammar bot 
           (Map (\(x, xs) => x :: xs) 
             (MkGrammar bot (Seq g (star g))))
 
@@ -170,5 +173,5 @@ lu = MkGrammar bot (Alt lower upper)
 
 export 
 ex : Grammar Nil (List Char)
-ex = MkGrammar bot (Alt (star lower) (MkGrammar bot (Map (\(x) => [x]) upper)))
+ex = MkGrammar bot (Alt (star lower) (MkGrammar bot (Map (\x => [x]) upper)))
 

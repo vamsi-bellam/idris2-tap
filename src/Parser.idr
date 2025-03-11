@@ -73,9 +73,8 @@ public export
 fix : (Parser a -> Parser a) -> Parser a
 fix f input = f (fix f) input
 
--- Takes type checked grammar and produce the parser
 public export 
-parse : {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> ParseEnv ct -> Parser a
+parse : {ct : Vect n Type} -> Grammar ct a -> ParseEnv ct -> Parser a
 parse (MkGrammar _ (Eps g)) penv = eps g
 parse (MkGrammar _ (Seq g1 g2)) penv = 
   let p1 = parse g1 penv
