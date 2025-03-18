@@ -39,6 +39,13 @@ bot _ = MkGrammar bot Bot
 alt : HT a -> HT a -> HT a
 alt f g ctx = MkGrammar bot (Alt (f ctx) (g ctx))
 
+
+tshift : {a : Type} -> {ct1 : Vect n Type} -> {ct2 : Vect m Type} ->
+          Nat -> (ctx1 : Ctx ct1) -> (ctx2 : Ctx (a :: ct2)) -> Var a ct1
+tshift Z (x :: xs) (y :: ys) = ?ff
+tshift (S k) (x :: xs) (ys)  = S (tshift k xs ys)
+tshift _ _ _ = believe_me ()
+
 data Extends : Ctx ct1 -> Ctx ct2 -> Type where
   Same  : Extends ctx ctx              
   Extend : Extends ctx1 ctx2 -> Extends (a :: ctx1) ctx2

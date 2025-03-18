@@ -108,25 +108,68 @@ export
 typeCheck : Grammar Nil a -> Either String (Grammar Nil a)
 typeCheck g = typeof [] g
 
+extendedFn : {m, n : Nat} -> (f : Fin m -> Fin n) -> Fin (S m) -> Fin (S n)
+extendedFn f FZ = FZ 
+extendedFn f (FS i) = FS (f i)  
+
+extendedPrf : {ct : Vect m Type} -> {ct' : Vect n Type} -> {a : Type} ->
+             (prf : (i : Fin m) -> index i ct = index (f i) ct') ->
+             (i : Fin (S m)) -> index i (a :: ct) = index (extendedFn f i) (a :: ct')
+extendedPrf prf FZ = Refl
+extendedPrf prf (FS i) = prf i
+
+
+varFromFin : {ctx : Vect n Type} -> (i : Fin n) -> index i ctx = ty -> Var ty ctx
+varFromFin {ctx = ty :: rest} FZ Refl = Z
+varFromFin {ctx = _ :: rest} (FS x) prf = S (varFromFin x prf)
+
+whereH : {ct1 : Vect m Type} -> (g : Var h ct1) -> (index (varToFin g) ct1 = h)
+whereH {ct1 = (h :: rest)} Z = Refl
+whereH {ct1 = (b :: rest)} (S x) = whereH x
+
+reindexVar : {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
+              (given: Var h ct1) ->
+             (f : Fin m -> Fin n) -> 
+             (prf : (i : Fin m) -> index i ct1 = index (f i) ct2) ->  
+             Var h ct2
+reindexVar g f prf = 
+  let fnd = whereH g in 
+  varFromFin (f (varToFin g)) (sym (trans (sym fnd) (prf (varToFin g))))
+
+
+partial
+mapGrammar : {m, n : Nat} -> {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
+            (f : Fin m -> Fin n) -> 
+            (prf : (i : Fin m) -> index i ct1 = index (f i) ct2) -> 
+            Grammar ct1 k -> Grammar ct2 k
+mapGrammar f prf (MkGrammar l g) = MkGrammar l (mapGramType f prf g)
+  where
+    mapGramType : {m, n : Nat} -> {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
+                 (f : Fin m -> Fin n) -> 
+                 (prf : (i : Fin m) -> index i ct1 = index (f i) ct2) -> 
+                 GrammarType ct1 h -> GrammarType ct2 h
+    mapGramType f prf (Eps x) = Eps x
+    mapGramType f prf (Seq g1 g2) = Seq (mapGrammar f prf g1) (mapGrammar f prf g2)
+    mapGramType f prf (Chr c) = Chr c
+    mapGramType f prf Bot = Bot
+    mapGramType f prf (Alt g1 g2) = Alt (mapGrammar f prf g1) (mapGrammar f prf g2)
+    mapGramType f prf (Map fn g) = Map fn (mapGrammar f prf g)
+    mapGramType f prf (Fix {a = l} {ct = bt} g) = 
+      Fix (mapGrammar (extendedFn f) (extendedPrf prf) g)
+    mapGramType f prf (Var v) = Var (reindexVar v f prf)
+
+
+wekeanGrammar : {z : Type} -> {m : Nat} -> {ct : Vect m Type} -> Grammar ct k -> Grammar (z :: ct) k
+wekeanGrammar = mapGrammar f prf
+  where 
+    f : Fin m -> Fin (S m)
+    f i = FS i 
+    prf : (i : Fin m) -> index i ct = index (f i) (z :: ct)
+    prf i = Refl
 
 -- Examples 
-weakenGrammar : {z : Type} -> {ct : Vect len Type} -> Grammar ct k 
-                -> Grammar (z :: ct) k
-weakenGrammar (MkGrammar l g) = MkGrammar l (weakenGramType g)
-  where 
-    weakenGramType : {z : Type} -> {ct : Vect len Type} -> GrammarType ct h 
-                      -> GrammarType (z :: ct) h
-    weakenGramType (Eps x) = Eps x
-    weakenGramType (Seq g1 g2) = Seq (weakenGrammar g1) (weakenGrammar g2)
-    weakenGramType (Chr c) = Chr c
-    weakenGramType Bot = Bot
-    weakenGramType (Alt g1 g2) = Alt (weakenGrammar g1) (weakenGrammar g2)
-    weakenGramType (Map f g) = Map f (weakenGrammar g)
-    weakenGramType (Fix {a = l} {ct = bt} g) = ?kkk
-    weakenGramType (Var v) = Var (S v) 
-
 export
-star : {a : Type} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
+star : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
 star g = 
   MkGrammar bot (Fix {a = List a} (star' g))
   where
@@ -139,12 +182,12 @@ star g =
             (Map (\(x, xs) => x :: xs) 
               (MkGrammar bot 
                 (Seq 
-                  (weakenGrammar g)
+                  (wekeanGrammar g)
                   (MkGrammar bot (Var Z))
                 )))))
 
 export
-plus : {a : Type} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
+plus : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
 plus g = MkGrammar bot 
           (Map (\(x, xs) => x :: xs) 
             (MkGrammar bot (Seq g (star g))))
@@ -175,3 +218,23 @@ export
 ex : Grammar Nil (List Char)
 ex = MkGrammar bot (Alt (star lower) (MkGrammar bot (Map (\x => [x]) upper)))
 
+export
+word : Grammar Nil (List Char)
+word = 
+  MkGrammar 
+    bot 
+    (Map (\(c, cs) => c :: cs) (MkGrammar bot (Seq upper (star lower))))
+
+always : a -> b -> a
+always x = \_ => x
+
+export
+option : Grammar Nil a -> Grammar Nil (Maybe a)
+option g = 
+  MkGrammar 
+    bot 
+    (Alt (MkGrammar bot (Eps Nothing)) (MkGrammar bot (Map (\x => Just x) g)))
+
+export
+ex2 : Grammar Nil (Maybe Char)
+ex2 = option (charSet "a")
