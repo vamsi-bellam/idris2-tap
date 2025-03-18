@@ -192,9 +192,13 @@ plus g = MkGrammar bot
           (Map (\(x, xs) => x :: xs) 
             (MkGrammar bot (Seq g (star g))))
 
+any : List (Grammar Nil a) -> Grammar Nil a
+any lg = foldl (\g1, g2 => MkGrammar bot (Alt g1 g2)) (MkGrammar bot Bot) lg
+
+
 
 export
-charSet : String -> Grammar ct Char
+charSet : {ct : Vect n Type} -> String -> Grammar ct Char
 charSet str =  (charSet' (unpack str))
   where
     charSet' : List Char -> Grammar ct Char
@@ -203,23 +207,15 @@ charSet str =  (charSet' (unpack str))
      MkGrammar bot (Alt (MkGrammar bot (Chr c)) (charSet' cs))
 
 export
-lower :  Grammar Nil Char
+lower : {ct : Vect n Type} -> Grammar ct Char
 lower = charSet "abcdefghijklmnopqrstuvwxyz"
 
 export
-upper : Grammar Nil Char
+upper : {ct : Vect n Type} -> Grammar ct Char
 upper = charSet "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 export
-lu : Grammar Nil Char 
-lu = MkGrammar bot (Alt lower upper)
-
-export 
-ex : Grammar Nil (List Char)
-ex = MkGrammar bot (Alt (star lower) (MkGrammar bot (Map (\x => [x]) upper)))
-
-export
-word : Grammar Nil (List Char)
+word : {n : Nat} -> {ct : Vect n Type}  -> Grammar ct (List Char)
 word = 
   MkGrammar 
     bot 
@@ -238,3 +234,48 @@ option g =
 export
 ex2 : Grammar Nil (Maybe Char)
 ex2 = option (charSet "a")
+
+export
+data Token = SYMBOL (List Char) | LPAREN | RPAREN
+
+symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Token
+symbol = MkGrammar bot (Map (\s => SYMBOL s) word)
+
+lparen : {ct : Vect n Type} -> Grammar ct Token
+lparen = MkGrammar bot (Map (always LPAREN) (charSet "("))
+
+rparen : {ct : Vect n Type} -> Grammar ct Token
+rparen = MkGrammar bot (Map (always RPAREN) (charSet ")"))
+
+token : Grammar Nil Token
+token = any [symbol, lparen, rparen]
+
+export
+data Sexp = Sym | Seqq (List Sexp)
+
+export
+paren : {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
+paren p = 
+  MkGrammar 
+    bot 
+    (Map 
+      (\((_, a), _) => a) 
+      (MkGrammar bot (Seq (MkGrammar bot (Seq lparen p)) rparen)))
+
+
+export
+sexp : Grammar Nil Sexp
+sexp = 
+  MkGrammar bot (Fix {a = Sexp} sexp')
+  where
+    sexp' : Grammar [Sexp] Sexp
+    sexp' = 
+      MkGrammar 
+        bot 
+        (Alt 
+          (MkGrammar bot (Map (always Sym) (wekeanGrammar symbol))) 
+          (MkGrammar 
+            bot 
+            (Map 
+              (\s => Seqq s) 
+              (paren (star (MkGrammar bot (Var Z)))))))

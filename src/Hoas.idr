@@ -111,44 +111,44 @@ genParser parser = do
 
 -- examples 
 
-charset : String -> HT Char
-charset str = any (map char (unpack str))
+-- charset : String -> HT Char
+-- charset str = any (map char (unpack str))
 
-lower : HT Char 
-lower = charset "abcdefghijklmnopqrstuvwxyz"
+-- lower : HT Char 
+-- lower = charset "abcdefghijklmnopqrstuvwxyz"
 
-upper : HT Char 
-upper = charset "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+-- upper : HT Char 
+-- upper = charset "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-word : HT (List Char)
-word = map (\(c, cs) => c :: cs) (seq upper (star lower))
+-- word : HT (List Char)
+-- word = map (\(c, cs) => c :: cs) (seq upper (star lower))
 
-data Token = SYMBOL (List Char) | LPAREN | RPAREN
+-- data Token = SYMBOL (List Char) | LPAREN | RPAREN
 
-symbol : HT Token
-symbol = map (\s => SYMBOL s) word
+-- symbol : HT Token
+-- symbol = map (\s => SYMBOL s) word
 
-lparen : HT Token
-lparen = map (always LPAREN) (char '(')
+-- lparen : HT Token
+-- lparen = map (always LPAREN) (char '(')
 
-rparen : HT Token
-rparen = map (always RPAREN) (char ')')
+-- rparen : HT Token
+-- rparen = map (always RPAREN) (char ')')
 
-token : HT Token
-token = any [symbol, lparen, rparen]
+-- token : HT Token
+-- token = any [symbol, lparen, rparen]
 
-data Sexp = Sym | Seq (List Sexp)
+-- data Sexp = Sym | Seq (List Sexp)
 
-paren : HT a -> HT a
-paren p = map (\((_, a), _) => a) (seq (seq lparen p) rparen)
+-- paren : HT a -> HT a
+-- paren p = map (\((_, a), _) => a) (seq (seq lparen p) rparen)
 
-exParen : HT (List (Char, Char))
-exParen = star (paren (seq (char 'a') (alt (char 'b') (char 'c')) ))
+-- exParen : HT (List (Char, Char))
+-- exParen = star (paren (seq (char 'a') (alt (char 'b') (char 'c')) ))
 
-sexp : HT Sexp 
-sexp = fix (\f => 
-            any 
-              [
-                map (always Sym) symbol
-              , map (\s => Seq s) (paren (star f))
-              ])
+-- sexp : HT Sexp 
+-- sexp = fix (\f => 
+--             any 
+--               [
+--                 map (always Sym) symbol
+--               , map (\s => Seq s) (paren (star f))
+--               ])
