@@ -11,21 +11,17 @@ public export
 Parser : Type -> Type 
 Parser a  = List Char -> Either String (a , List Char)
 
-public export
 bot : Parser a
 bot _ = Left "Impossible"
 
-public export
 eps : a -> Parser a
 eps v rest = Right (v, rest)
 
-public export
 chr : Char -> Parser Char
 chr c [] = Left "Expected \{show c}, reached end of the stream"
 chr c (x :: xs) = 
     if x == c then Right (x, xs) else Left "Expected \{show c}, got \{show x}"
 
-public export 
 seq : Parser a -> Parser b -> Parser (a, b)
 seq p1 p2 cs = 
   do 
@@ -50,32 +46,24 @@ alt l1 p1 l2 p2 cs =
                 else 
                   Left "No Progress possible, unexpected token - \{show hd}"  
 
-public export
 map : (a -> b) -> Parser a -> Parser b
 map f p cs = 
   do 
     (a, rest) <- p cs
     Right (f a , rest)
 
-
-public export
 data ParseEnv : Vect n Type -> Type where
   Empty  : ParseEnv []
   (::) : Parser a -> ParseEnv as -> ParseEnv (a :: as)
 
-public export 
 lookup : Var a ct -> ParseEnv ct -> Parser a 
 lookup Z (x :: _ ) = x
 lookup (S k) (_ :: xs) = lookup k xs
 
-
-public export
-fix : (Parser a -> Parser a) -> Parser a
-fix f input = f (fix f) input
-
-public export 
+export 
 parse : {ct : Vect n Type} -> Grammar ct a -> ParseEnv ct -> Parser a
 parse (MkGrammar _ (Eps g)) penv = eps g
+
 parse (MkGrammar _ (Seq g1 g2)) penv = 
   let p1 = parse g1 penv
       p2 = parse g2 penv
@@ -83,7 +71,9 @@ parse (MkGrammar _ (Seq g1 g2)) penv =
   seq p1 p2
 
 parse (MkGrammar _ (Chr c)) penv = chr c
+
 parse (MkGrammar _ Bot) penv = bot
+
 parse (MkGrammar _ (Alt g1 g2)) penv = 
   let p1 = parse g1 penv 
       p2 = parse g2 penv
@@ -91,17 +81,24 @@ parse (MkGrammar _ (Alt g1 g2)) penv =
     alt g1.lang p1 g2.lang p2
 
 parse (MkGrammar _ (Map f g)) penv = map f (parse g penv)
-parse (MkGrammar _ (Fix g)) penv = fix (\p => parse g (p :: penv))
+
+parse (MkGrammar _ (Fix g)) penv = 
+  fix (\p => parse g (p :: penv))
+    where
+      fix : (Parser a -> Parser a) -> Parser a
+      fix f input = f (fix f) input
+
 parse (MkGrammar _ (Var var)) penv = lookup var penv
 
 
+export
 generateParser : Grammar Nil a -> Either String (Parser a)
 generateParser gram = 
   do 
     typedGrammar <- typeCheck gram 
     Right (parse typedGrammar Empty)
 
-public export
+export
 runParser : Either String (Parser a) ->  
             List Char -> Either String (a , List Char)
 runParser parser input = 

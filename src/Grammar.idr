@@ -23,7 +23,7 @@ mutual
     gram : GrammarType ct a
 
 mutual
-  public export
+  export
   showGrammar : (Grammar n a) -> String
   showGrammar (MkGrammar lang gram) = 
     """
@@ -32,7 +32,7 @@ mutual
     }
     """
 
-  public export
+  export
   showGrammarType : (GrammarType n a) -> String
   -- Ideally, need to show x too, but that requires a to have Show interface 
   -- implemented and have that constraint at the type level.
@@ -46,11 +46,11 @@ mutual
   showGrammarType (Var x) = "Var \{show x}"
 
 mutual 
-  public export
+  export
   Show a => Show (Grammar n a) where 
     show = showGrammar
 
-  public export
+  export
   Show a => Show (GrammarType n a) where
     show = showGrammarType
 
@@ -62,7 +62,7 @@ varToFin : {ct : Vect n Type} -> Var a ct -> Fin n
 varToFin Z = FZ
 varToFin (S x) = FS (varToFin x)
 
-public export
+export
 typeof : (env : Vect n LangType) ->  {ct : Vect n Type} -> Grammar ct a 
         -> Either String (Grammar ct a)
 typeof env (MkGrammar _ (Eps x)) = Right (MkGrammar eps (Eps x))
@@ -108,6 +108,11 @@ export
 typeCheck : Grammar Nil a -> Either String (Grammar Nil a)
 typeCheck g = typeof [] g
 
+
+
+
+-- Helpers 
+
 extendedFn : {m, n : Nat} -> (f : Fin m -> Fin n) -> Fin (S m) -> Fin (S n)
 extendedFn f FZ = FZ 
 extendedFn f (FS i) = FS (f i)  
@@ -136,8 +141,7 @@ reindexVar g f prf =
   let fnd = whereH g in 
   varFromFin (f (varToFin g)) (sym (trans (sym fnd) (prf (varToFin g))))
 
-
-partial
+export
 mapGrammar : {m, n : Nat} -> {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
             (f : Fin m -> Fin n) -> 
             (prf : (i : Fin m) -> index i ct1 = index (f i) ct2) -> 
@@ -159,6 +163,7 @@ mapGrammar f prf (MkGrammar l g) = MkGrammar l (mapGramType f prf g)
     mapGramType f prf (Var v) = Var (reindexVar v f prf)
 
 
+export
 wekeanGrammar : {z : Type} -> {m : Nat} -> {ct : Vect m Type} -> Grammar ct k -> Grammar (z :: ct) k
 wekeanGrammar = mapGrammar f prf
   where 
@@ -167,7 +172,6 @@ wekeanGrammar = mapGrammar f prf
     prf : (i : Fin m) -> index i ct = index (f i) (z :: ct)
     prf i = Refl
 
--- Examples 
 export
 star : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
 star g = 
@@ -192,90 +196,12 @@ plus g = MkGrammar bot
           (Map (\(x, xs) => x :: xs) 
             (MkGrammar bot (Seq g (star g))))
 
-any : List (Grammar Nil a) -> Grammar Nil a
+export
+any : {ct : Vect n Type} -> List (Grammar ct a) -> Grammar ct a
 any lg = foldl (\g1, g2 => MkGrammar bot (Alt g1 g2)) (MkGrammar bot Bot) lg
 
-
-
 export
-charSet : {ct : Vect n Type} -> String -> Grammar ct Char
-charSet str =  (charSet' (unpack str))
-  where
-    charSet' : List Char -> Grammar ct Char
-    charSet' [] = MkGrammar bot Bot
-    charSet' (c :: cs) = 
-     MkGrammar bot (Alt (MkGrammar bot (Chr c)) (charSet' cs))
-
-export
-lower : {ct : Vect n Type} -> Grammar ct Char
-lower = charSet "abcdefghijklmnopqrstuvwxyz"
-
-export
-upper : {ct : Vect n Type} -> Grammar ct Char
-upper = charSet "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-export
-word : {n : Nat} -> {ct : Vect n Type}  -> Grammar ct (List Char)
-word = 
-  MkGrammar 
-    bot 
-    (Map (\(c, cs) => c :: cs) (MkGrammar bot (Seq upper (star lower))))
-
-always : a -> b -> a
-always x = \_ => x
-
-export
-option : Grammar Nil a -> Grammar Nil (Maybe a)
-option g = 
-  MkGrammar 
-    bot 
-    (Alt (MkGrammar bot (Eps Nothing)) (MkGrammar bot (Map (\x => Just x) g)))
-
-export
-ex2 : Grammar Nil (Maybe Char)
-ex2 = option (charSet "a")
-
-export
-data Token = SYMBOL (List Char) | LPAREN | RPAREN
-
-symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Token
-symbol = MkGrammar bot (Map (\s => SYMBOL s) word)
-
-lparen : {ct : Vect n Type} -> Grammar ct Token
-lparen = MkGrammar bot (Map (always LPAREN) (charSet "("))
-
-rparen : {ct : Vect n Type} -> Grammar ct Token
-rparen = MkGrammar bot (Map (always RPAREN) (charSet ")"))
-
-token : Grammar Nil Token
-token = any [symbol, lparen, rparen]
-
-export
-data Sexp = Sym | Seqq (List Sexp)
-
-export
-paren : {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
-paren p = 
-  MkGrammar 
-    bot 
-    (Map 
-      (\((_, a), _) => a) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq lparen p)) rparen)))
+bot : LangType
+bot = Language.bot
 
 
-export
-sexp : Grammar Nil Sexp
-sexp = 
-  MkGrammar bot (Fix {a = Sexp} sexp')
-  where
-    sexp' : Grammar [Sexp] Sexp
-    sexp' = 
-      MkGrammar 
-        bot 
-        (Alt 
-          (MkGrammar bot (Map (always Sym) (wekeanGrammar symbol))) 
-          (MkGrammar 
-            bot 
-            (Map 
-              (\s => Seqq s) 
-              (paren (star (MkGrammar bot (Var Z)))))))

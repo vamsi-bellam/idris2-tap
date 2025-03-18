@@ -1,7 +1,6 @@
 module Hoas
 
 import Grammar
-import Language
 import Data.Vect
 import Parser
 import Env
@@ -99,14 +98,13 @@ star g =
           ] 
       )
 
-typeCheck : HT a -> Either String (Grammar Nil a)
-typeCheck parser = typeof [] (parser Nil) 
+-- typeCheck : HT a -> Either String (Grammar Nil a)
+-- typeCheck parser = typeof [] (parser Nil) 
 
-genParser : HT a -> Either String (Parser a)
-genParser parser = do 
-        typedGrammar <- typeCheck parser
-        Right (parse typedGrammar (Empty))
-
+-- genParser : HT a -> Either String (Parser a)
+-- genParser parser = do 
+--         typedGrammar <- typeCheck parser
+--         Right (parse typedGrammar (Empty))
 
 
 -- examples 
