@@ -121,7 +121,7 @@ min =
 
 export
 fix : (Either String LangType -> Either String LangType) -> Either String LangType 
-fix f = fixHelper (Right min) 
+fix f = fixHelper $ Right min
 
   where
     fixHelper : Either String LangType -> Either String LangType 

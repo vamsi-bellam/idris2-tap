@@ -118,28 +118,31 @@ extendedFn f FZ = FZ
 extendedFn f (FS i) = FS (f i)  
 
 extendedPrf : {ct : Vect m Type} -> {ct' : Vect n Type} -> {a : Type} ->
-             (prf : (i : Fin m) -> index i ct = index (f i) ct') ->
-             (i : Fin (S m)) -> index i (a :: ct) = index (extendedFn f i) (a :: ct')
+              (prf : (i : Fin m) -> index i ct = index (f i) ct') ->
+              (i : Fin (S m)) ->
+              index i (a :: ct) = index (extendedFn f i) (a :: ct')
 extendedPrf prf FZ = Refl
 extendedPrf prf (FS i) = prf i
 
 
-varFromFin : {ctx : Vect n Type} -> (i : Fin n) -> index i ctx = ty -> Var ty ctx
-varFromFin {ctx = ty :: rest} FZ Refl = Z
-varFromFin {ctx = _ :: rest} (FS x) prf = S (varFromFin x prf)
+varFromFin : {ct : Vect n Type} -> (i : Fin n) -> {auto prf : index i ct = a} 
+              -> Var a ct
+varFromFin {ct = a :: rest} FZ {prf = Refl} = Z
+varFromFin {ct = _ :: rest} (FS x) {prf = prf} = S $ varFromFin x {prf}
 
-whereH : {ct1 : Vect m Type} -> (g : Var h ct1) -> (index (varToFin g) ct1 = h)
-whereH {ct1 = (h :: rest)} Z = Refl
-whereH {ct1 = (b :: rest)} (S x) = whereH x
+evidenceOfTypeInVar : {ct : Vect n Type} -> (var : Var a ct) -> 
+                      index (varToFin var) ct = a
+evidenceOfTypeInVar {ct = (a :: rest)} Z = Refl
+evidenceOfTypeInVar {ct = (b :: rest)} (S x) = evidenceOfTypeInVar x
 
-reindexVar : {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
-              (given: Var h ct1) ->
+reindexVar : {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> Var h ct1 ->
              (f : Fin m -> Fin n) -> 
              (prf : (i : Fin m) -> index i ct1 = index (f i) ct2) ->  
              Var h ct2
-reindexVar g f prf = 
-  let fnd = whereH g in 
-  varFromFin (f (varToFin g)) (sym (trans (sym fnd) (prf (varToFin g))))
+reindexVar var f prf = 
+  let hIsInCt1 = evidenceOfTypeInVar var 
+      hIsInCt2 = trans (sym (prf (varToFin var))) hIsInCt1 in
+  varFromFin (f (varToFin var))
 
 export
 mapGrammar : {m, n : Nat} -> {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
@@ -164,7 +167,8 @@ mapGrammar f prf (MkGrammar l g) = MkGrammar l (mapGramType f prf g)
 
 
 export
-wekeanGrammar : {z : Type} -> {m : Nat} -> {ct : Vect m Type} -> Grammar ct k -> Grammar (z :: ct) k
+wekeanGrammar : {z : Type} -> {m : Nat} -> {ct : Vect m Type} -> 
+                Grammar ct k -> Grammar (z :: ct) k
 wekeanGrammar = mapGrammar f prf
   where 
     f : Fin m -> Fin (S m)
@@ -173,28 +177,28 @@ wekeanGrammar = mapGrammar f prf
     prf i = Refl
 
 export
-star : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
+star : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
+        Grammar ct (List a)
 star g = 
   MkGrammar bot (Fix {a = List a} (star' g))
   where
     star' : Grammar ct a -> Grammar (List a :: ct) (List a)
     star' g = 
-      MkGrammar bot 
-        (Alt 
-          (MkGrammar bot (Eps []))
-          (MkGrammar bot 
-            (Map (\(x, xs) => x :: xs) 
-              (MkGrammar bot 
-                (Seq 
-                  (wekeanGrammar g)
-                  (MkGrammar bot (Var Z))
-                )))))
+      MkGrammar bot (Alt 
+                      (MkGrammar bot (Eps []))
+                      (MkGrammar bot 
+                        (Map (\(x, xs) => x :: xs) 
+                          (MkGrammar bot 
+                            (Seq 
+                              (wekeanGrammar g)
+                              (MkGrammar bot (Var Z))
+                            )))))
 
 export
-plus : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct (List a)
-plus g = MkGrammar bot 
-          (Map (\(x, xs) => x :: xs) 
-            (MkGrammar bot (Seq g (star g))))
+plus : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
+        Grammar ct (List a)
+plus g = 
+  MkGrammar bot (Map (\(x, xs) => x :: xs) (MkGrammar bot (Seq g (star g))))
 
 export
 any : {ct : Vect n Type} -> List (Grammar ct a) -> Grammar ct a

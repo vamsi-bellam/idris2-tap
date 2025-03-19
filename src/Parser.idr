@@ -80,7 +80,7 @@ parse (MkGrammar _ (Alt g1 g2)) penv =
   in
     alt g1.lang p1 g2.lang p2
 
-parse (MkGrammar _ (Map f g)) penv = map f (parse g penv)
+parse (MkGrammar _ (Map f g)) penv = map f $ parse g penv
 
 parse (MkGrammar _ (Fix g)) penv = 
   fix (\p => parse g (p :: penv))

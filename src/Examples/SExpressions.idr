@@ -9,7 +9,7 @@ import Parser
 
 export
 charSet : {ct : Vect n Type} -> String -> Grammar ct Char
-charSet str =  (charSet' (unpack str))
+charSet str =  str |> unpack |> charSet'
   where
     charSet' : List Char -> Grammar ct Char
     charSet' [] = MkGrammar bot Bot
