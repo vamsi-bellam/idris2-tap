@@ -12,10 +12,13 @@ always : a -> b -> a
 always x = \_ => x
 
 export
-data Token = SYMBOL (List Char) | LPAREN | RPAREN
+data SToken : Type -> Type where 
+  Symbol : String -> SToken String
+  LParen : SToken () 
+  RParen : SToken ()
 
-symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Token
-symbol = MkGrammar bot (Map (\s => SYMBOL s) word)
+symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (SToken String)
+symbol = MkGrammar bot (Map (\s => Symbol (pack s)) word)
 -- symbol = 
 --  MkGrammar 
 --             bot 
@@ -35,17 +38,15 @@ symbol = MkGrammar bot (Map (\s => SYMBOL s) word)
   --             (\(c, cs) => SYMBOL (c :: cs)) 
   --             (MkGrammar bot (Seq (upper) (star (any [lower, upper])))))))
 
-lparen : {ct : Vect n Type} -> Grammar ct Token
-lparen = MkGrammar bot (Map (always LPAREN) (charSet "("))
+lparen : {ct : Vect n Type} -> Grammar ct (SToken ())
+lparen = MkGrammar bot (Map (always LParen) (charSet "("))
 
-rparen : {ct : Vect n Type} -> Grammar ct Token
-rparen = MkGrammar bot (Map (always RPAREN) (charSet ")"))
+rparen : {ct : Vect n Type} -> Grammar ct (SToken ())
+rparen = MkGrammar bot (Map (always RParen) (charSet ")"))
 
-token : {n : Nat} -> {ct : Vect n Type} ->  Grammar ct Token
-token = any [symbol, lparen, rparen]
 
 export
-data Sexp = Sym | Seqq (List Sexp)
+data Sexp = Sym String | Sequence (List Sexp)
 
 export
 paren : {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
@@ -67,11 +68,11 @@ sexp =
       MkGrammar 
         bot 
         (Alt 
-          (MkGrammar bot (Map (always Sym) (wekeanGrammar symbol))) 
+          (MkGrammar bot (Map (\(Symbol s) => Sym s) (wekeanGrammar symbol))) 
           (MkGrammar 
             bot 
             (Map 
-              (\s => Seqq s) 
+              (\s => Sequence s) 
               (paren (star (MkGrammar bot (Var Z)))))))
 
 
