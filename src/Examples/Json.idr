@@ -130,37 +130,40 @@ maybe p = any [
 ]
 
 export
-com : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
+sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
         Grammar ct (List a)
-com g = 
-  MkGrammar bot (Fix {a = List a} (com' g))
+sepByComma g = 
+  MkGrammar bot (Fix {a = List a} (sepByComma' g))
   where
-    com' : Grammar ct a -> Grammar (List a :: ct) (List a)
-    com' g = 
-      MkGrammar bot (Alt 
-                      (MkGrammar bot (Eps []))
-                      (MkGrammar bot 
-                        (Map (\(x, xs) => case xs of 
-                                               Nothing => [x]
-                                               Just(_, rest) => x :: rest) 
-                          (MkGrammar bot 
-                            (Seq 
-                              (wekeanGrammar g)
-                              (maybe (MkGrammar bot (Seq comma (MkGrammar bot (Var Z)))))
-                            )))))
-
-
-map' : List (JsonToken Double) -> List JsonValue
-map' [] = []
-map' ((TDecimal dbl) :: xs) = JDecimal dbl :: map' xs
-
+    sepByComma' : Grammar ct a -> Grammar (List a :: ct) (List a)
+    sepByComma' g = 
+      MkGrammar 
+        bot 
+        (Alt 
+          (MkGrammar bot (Eps []))
+          (MkGrammar bot 
+            (Map 
+              (\(x, xs) => case xs of 
+                                Nothing => [x]
+                                Just(_, rest) => x :: rest) 
+              (MkGrammar 
+                bot 
+                (Seq 
+                  (wekeanGrammar g)
+                  (maybe (MkGrammar 
+                            bot 
+                            (Seq comma (MkGrammar bot (Var Z))))))))))
 
 value :  Grammar Nil JsonValue
 value = MkGrammar bot (Fix {a = JsonValue} value')
   where
     value' : Grammar [JsonValue] JsonValue
     value' = 
-      let arr = MkGrammar bot (Map (\arf => JArray arf) (delim lbracket (com (MkGrammar bot (Var Z))) rbracket))
+      let arr = 
+            MkGrammar 
+              bot 
+              (Map (\rest => JArray rest) 
+                  (delim lbracket (sepByComma (MkGrammar bot (Var Z))) rbracket))
           decmap = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) decimal)
           stringmap = MkGrammar bot (Map (\(TString s) => JString s ) stringp)
           nullmap = MkGrammar bot (Map (\_ => JNull ) nullp)
