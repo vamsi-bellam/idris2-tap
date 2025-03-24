@@ -7,6 +7,12 @@ import Env
 import Parser
 import Examples.Utils
 
+maybe : {ct : Vect n Type} -> Grammar ct a -> Grammar ct (Maybe a)
+maybe p = any [
+  MkGrammar bot (Map (\x => Just x) p),
+  MkGrammar bot (Eps Nothing)
+]
+
 
 data JsonToken : Type -> Type where
   TNull : JsonToken ()
@@ -98,11 +104,21 @@ stringp =
 export
 decimal : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (JsonToken Double)
 decimal = 
-  MkGrammar bot
-  (Map (\((s, d), e) => TDecimal (cast (pack (s ++ [d] ++ e) ))) 
-   (MkGrammar bot 
-    (Seq 
-      (MkGrammar bot (Seq (plus digit) (charSet "."))) (plus digit) )))
+  MkGrammar 
+    bot
+    (Map 
+      toDecimal 
+      (MkGrammar 
+        bot 
+        (Seq 
+          (plus digit) 
+          (maybe (MkGrammar bot (Seq (charSet ".") (plus digit)))))))
+  where 
+    toDecimal : (List Char, Maybe (Char, List Char)) -> JsonToken Double
+    toDecimal (num, Nothing) = TDecimal (cast $ pack num)
+    toDecimal (num, (Just (dot, frac))) = 
+      TDecimal (cast $ pack (num ++ [dot] ++ frac))
+    
 
 export
 delim : {ct : Vect n Type} -> Grammar ct a -> Grammar ct b  -> Grammar ct c
@@ -122,12 +138,6 @@ data JsonValue =
   | JString String
   | JArray (List JsonValue)
   | JObject (List (String, JsonValue))
-
-maybe : {ct : Vect n Type} -> Grammar ct a -> Grammar ct (Maybe a)
-maybe p = any [
-  MkGrammar bot (Map (\x => Just x) p),
-  MkGrammar bot (Eps Nothing)
-]
 
 export
 sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
@@ -154,19 +164,39 @@ sepByComma g =
                             bot 
                             (Seq comma (MkGrammar bot (Var Z))))))))))
 
+
+                          
+member : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
+        Grammar ct (String, a)
+member x = 
+  MkGrammar 
+    bot 
+    (Map 
+      (\((TString key, _), val) => (key, val)) 
+      (MkGrammar bot (Seq (MkGrammar bot (Seq stringp colon)) x)))
+
 value :  Grammar Nil JsonValue
 value = MkGrammar bot (Fix {a = JsonValue} value')
   where
     value' : Grammar [JsonValue] JsonValue
     value' = 
-      let arr = 
+      let object = 
+            MkGrammar 
+              bot 
+              (Map 
+                (\kvpairs => JObject kvpairs) 
+                (delim 
+                  lbrace 
+                  (sepByComma (member (MkGrammar bot (Var Z)))) 
+                  rbrace))
+          array = 
             MkGrammar 
               bot 
               (Map (\rest => JArray rest) 
-                  (delim lbracket (sepByComma (MkGrammar bot (Var Z))) rbracket))
-          decmap = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) decimal)
-          stringmap = MkGrammar bot (Map (\(TString s) => JString s ) stringp)
-          nullmap = MkGrammar bot (Map (\_ => JNull ) nullp)
-          truemap = MkGrammar bot (Map (\_ => JBool True ) truep)
-          falsemap = MkGrammar bot (Map (\_ => JBool False ) falsep) in 
-        any [arr, decmap, stringmap, nullmap, truemap, falsemap]
+                (delim lbracket (sepByComma (MkGrammar bot (Var Z))) rbracket))
+          decimal = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) decimal)
+          string = MkGrammar bot (Map (\(TString s) => JString s ) stringp)
+          null = MkGrammar bot (Map (\_ => JNull ) nullp)
+          true = MkGrammar bot (Map (\_ => JBool True ) truep)
+          false = MkGrammar bot (Map (\_ => JBool False ) falsep) in 
+        any [object, array, decimal, string, null, true, false]
