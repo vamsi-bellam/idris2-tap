@@ -5,31 +5,8 @@ import Data.Vect
 import Grammar
 import Env
 import Parser
+import Examples.Utils
 
-
-export
-charSet : {ct : Vect n Type} -> String -> Grammar ct Char
-charSet str =  str |> unpack |> charSet'
-  where
-    charSet' : List Char -> Grammar ct Char
-    charSet' [] = MkGrammar bot Bot
-    charSet' (c :: cs) = 
-     MkGrammar bot (Alt (MkGrammar bot (Chr c)) (charSet' cs))
-
-export
-lower : {ct : Vect n Type} -> Grammar ct Char
-lower = charSet "abcdefghijklmnopqrstuvwxyz"
-
-export
-upper : {ct : Vect n Type} -> Grammar ct Char
-upper = charSet "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-export
-word : {n : Nat} -> {ct : Vect n Type}  -> Grammar ct (List Char)
-word = 
-  MkGrammar 
-    bot 
-    (Map (\(c, cs) => c :: cs) (MkGrammar bot (Seq upper (star lower))))
 
 always : a -> b -> a
 always x = \_ => x
@@ -39,6 +16,24 @@ data Token = SYMBOL (List Char) | LPAREN | RPAREN
 
 symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Token
 symbol = MkGrammar bot (Map (\s => SYMBOL s) word)
+-- symbol = 
+--  MkGrammar 
+--             bot 
+--             (Map 
+--               (\(c, cs) => SYMBOL (c :: cs)) 
+--               (MkGrammar bot (Seq (upper) (star (any [lower, upper])))))
+  -- MkGrammar 
+  --   bot 
+  --   (Alt (  MkGrammar 
+  --           bot 
+  --           (Map 
+  --             (\(c, cs) => SYMBOL (c :: cs)) 
+  --             (MkGrammar bot (Seq (lower) (star (any [lower, upper])))))) 
+  --       (  MkGrammar 
+  --           bot 
+  --           (Map 
+  --             (\(c, cs) => SYMBOL (c :: cs)) 
+  --             (MkGrammar bot (Seq (upper) (star (any [lower, upper])))))))
 
 lparen : {ct : Vect n Type} -> Grammar ct Token
 lparen = MkGrammar bot (Map (always LPAREN) (charSet "("))
