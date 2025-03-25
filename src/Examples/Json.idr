@@ -121,9 +121,9 @@ decimal =
     
 
 export
-delim : {ct : Vect n Type} -> Grammar ct a -> Grammar ct b  -> Grammar ct c
+between : {ct : Vect n Type} -> Grammar ct a -> Grammar ct b  -> Grammar ct c
         -> Grammar ct b
-delim left p right = 
+between left p right = 
   MkGrammar 
     bot 
     (Map 
@@ -185,7 +185,7 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
               bot 
               (Map 
                 (\kvpairs => JObject kvpairs) 
-                (delim 
+                (between 
                   lbrace 
                   (sepByComma (member (MkGrammar bot (Var Z)))) 
                   rbrace))
@@ -193,7 +193,7 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
             MkGrammar 
               bot 
               (Map (\rest => JArray rest) 
-                (delim lbracket (sepByComma (MkGrammar bot (Var Z))) rbracket))
+                (between lbracket (sepByComma (MkGrammar bot (Var Z))) rbracket))
           decimal = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) decimal)
           string = MkGrammar bot (Map (\(TString s) => JString s ) stringp)
           null = MkGrammar bot (Map (\_ => JNull ) nullp)

@@ -25,18 +25,18 @@ symbol = MkGrammar bot (Map (\s => Symbol (pack s)) word)
 --             (Map 
 --               (\(c, cs) => SYMBOL (c :: cs)) 
 --               (MkGrammar bot (Seq (upper) (star (any [lower, upper])))))
-  -- MkGrammar 
-  --   bot 
-  --   (Alt (  MkGrammar 
-  --           bot 
-  --           (Map 
-  --             (\(c, cs) => SYMBOL (c :: cs)) 
-  --             (MkGrammar bot (Seq (lower) (star (any [lower, upper])))))) 
-  --       (  MkGrammar 
-  --           bot 
-  --           (Map 
-  --             (\(c, cs) => SYMBOL (c :: cs)) 
-  --             (MkGrammar bot (Seq (upper) (star (any [lower, upper])))))))
+-- MkGrammar 
+--   bot 
+--   (Alt (  MkGrammar 
+--           bot 
+--           (Map 
+--             (\(c, cs) => SYMBOL (c :: cs)) 
+--             (MkGrammar bot (Seq (lower) (star (any [lower, upper])))))) 
+--       (  MkGrammar 
+--           bot 
+--           (Map 
+--             (\(c, cs) => SYMBOL (c :: cs)) 
+--             (MkGrammar bot (Seq (upper) (star (any [lower, upper])))))))
 
 lparen : {ct : Vect n Type} -> Grammar ct (SToken ())
 lparen = MkGrammar bot (Map (always LParen) (charSet "("))
@@ -58,6 +58,16 @@ paren p =
       (MkGrammar bot (Seq (MkGrammar bot (Seq lparen p)) rparen)))
 
 
+atom : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (SToken String)
+atom = 
+  MkGrammar 
+    bot 
+    (Map 
+      (\(first, rest) => Symbol (pack (first :: rest)))
+      (MkGrammar 
+        bot 
+        (Seq (any [lower, upper]) (star (any [lower, upper, digit])))))
+
 export
 sexp : Grammar Nil Sexp
 sexp = 
@@ -74,7 +84,6 @@ sexp =
             (Map 
               (\s => Sequence s) 
               (paren (star (MkGrammar bot (Var Z)))))))
-
 
 runSexp : List Char -> Either String (Sexp, List Char)
 runSexp input = 
