@@ -15,6 +15,15 @@ charSet str =  str |> unpack |> charSet'
      MkGrammar bot (Alt (MkGrammar bot (Chr c)) (charSet' cs))
 
 
+-- Considering Only Basic Latin (ASCII)	- Letters, digits, symbols
+export
+compCharSet : {ct : Vect n Type} -> String -> Grammar ct Char
+compCharSet s = 
+  let chs = map cast (unpack s)
+      rg = [0..127]
+      flt = filter (\x => (not (elem x chs))) rg
+  in charSet $ pack $ map cast flt 
+
 export
 digit : {ct : Vect n Type} -> Grammar ct Char
 digit = charSet "0123456789"

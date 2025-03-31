@@ -19,24 +19,6 @@ data SToken : Type -> Type where
 
 symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (SToken String)
 symbol = MkGrammar bot (Map (\s => Symbol (pack s)) word)
--- symbol = 
---  MkGrammar 
---             bot 
---             (Map 
---               (\(c, cs) => SYMBOL (c :: cs)) 
---               (MkGrammar bot (Seq (upper) (star (any [lower, upper])))))
--- MkGrammar 
---   bot 
---   (Alt (  MkGrammar 
---           bot 
---           (Map 
---             (\(c, cs) => SYMBOL (c :: cs)) 
---             (MkGrammar bot (Seq (lower) (star (any [lower, upper])))))) 
---       (  MkGrammar 
---           bot 
---           (Map 
---             (\(c, cs) => SYMBOL (c :: cs)) 
---             (MkGrammar bot (Seq (upper) (star (any [lower, upper])))))))
 
 lparen : {ct : Vect n Type} -> Grammar ct (SToken ())
 lparen = MkGrammar bot (Map (always LParen) (charSet "("))
@@ -45,8 +27,15 @@ rparen : {ct : Vect n Type} -> Grammar ct (SToken ())
 rparen = MkGrammar bot (Map (always RParen) (charSet ")"))
 
 
-export
+public export
 data Sexp = Sym String | Sequence (List Sexp)
+
+export
+Eq Sexp where
+  (==) (Sym s1) (Sym s2) = s1 == s2
+  (==) (Sequence xs) (Sequence ys) = assert_total (xs == ys)
+  (==) _ _ = False
+
 
 export
 paren : {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
@@ -85,8 +74,10 @@ sexp =
               (\s => Sequence s) 
               (paren (star (MkGrammar bot (Var Z)))))))
 
-runSexp : List Char -> Either String (Sexp, List Char)
+export 
+runSexp : String -> Either String (Sexp, List Char)
 runSexp input = 
   do
     parser <- generateParser sexp 
-    parser input
+    parser (unpack input)
+

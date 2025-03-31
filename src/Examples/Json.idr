@@ -90,6 +90,16 @@ falsep =
               (Seq (charSet "l") 
                 (MkGrammar bot (Seq (charSet "s") (charSet "e"))))))))))
 
+export
+fullstringp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (JsonToken String)
+fullstringp = 
+  MkGrammar bot
+  (Map (\((_, s), _) => TString (pack s)) 
+   (MkGrammar bot 
+    (Seq 
+      (MkGrammar bot (Seq (charSet "\"") (star (compCharSet "\"")))) 
+      (charSet "\"") )))
+
 
 export
 stringp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (JsonToken String)
@@ -98,7 +108,7 @@ stringp =
   (Map (\((_, s), _) => TString (pack s)) 
    (MkGrammar bot 
     (Seq 
-      (MkGrammar bot (Seq (charSet "\"") (star (any [lower, upper])))) 
+      (MkGrammar bot (Seq (charSet "\"") (star (any [lower, upper, digit])))) 
       (charSet "\"") )))
 
 export
@@ -195,7 +205,7 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
               (Map (\rest => JArray rest) 
                 (between lbracket (sepByComma (MkGrammar bot (Var Z))) rbracket))
           decimal = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) decimal)
-          string = MkGrammar bot (Map (\(TString s) => JString s ) stringp)
+          string = MkGrammar bot (Map (\(TString s) => JString s )  stringp)
           null = MkGrammar bot (Map (\_ => JNull ) nullp)
           true = MkGrammar bot (Map (\_ => JBool True ) truep)
           false = MkGrammar bot (Map (\_ => JBool False ) falsep) in 
