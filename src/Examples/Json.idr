@@ -7,6 +7,7 @@ import Env
 import Parser
 import Examples.Utils
 
+
 maybe : {ct : Vect n Type} -> Grammar ct a -> Grammar ct (Maybe a)
 maybe p = any [
   MkGrammar bot (Map (\x => Just x) p),
@@ -150,6 +151,16 @@ data JsonValue =
   | JObject (List (String, JsonValue))
 
 export
+Eq JsonValue where
+  JNull == JNull = True
+  (JBool x) == (JBool y) = x == y
+  (JDecimal x) == (JDecimal y) = x == y
+  (JString x) == (JString y) = x == y
+  (JArray xs) == (JArray ys) = assert_total (xs == ys)
+  (JObject xs) == (JObject ys) = assert_total  (xs == ys)
+  _ == _ = False
+
+export
 sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
         Grammar ct (List a)
 sepByComma g = 
@@ -183,7 +194,7 @@ member x =
     bot 
     (Map 
       (\((TString key, _), val) => (key, val)) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq stringp colon)) x)))
+      (MkGrammar bot (Seq (MkGrammar bot (Seq fullstringp  colon)) x)))
 
 value :  Grammar Nil JsonValue
 value = MkGrammar bot (Fix {a = JsonValue} value')
@@ -205,8 +216,16 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
               (Map (\rest => JArray rest) 
                 (between lbracket (sepByComma (MkGrammar bot (Var Z))) rbracket))
           decimal = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) decimal)
-          string = MkGrammar bot (Map (\(TString s) => JString s )  stringp)
+          string = MkGrammar bot (Map (\(TString s) => JString s )  fullstringp )
           null = MkGrammar bot (Map (\_ => JNull ) nullp)
           true = MkGrammar bot (Map (\_ => JBool True ) truep)
           false = MkGrammar bot (Map (\_ => JBool False ) falsep) in 
         any [object, array, decimal, string, null, true, false]
+
+
+export 
+parseJSON : String -> Either String (JsonValue, List Char)
+parseJSON input = 
+  do
+    parser <- generateParser value 
+    parser (unpack input)

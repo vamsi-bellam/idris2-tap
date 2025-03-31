@@ -75,8 +75,8 @@ sexp =
               (paren (star (MkGrammar bot (Var Z)))))))
 
 export 
-runSexp : String -> Either String (Sexp, List Char)
-runSexp input = 
+parseSexp : String -> Either String (Sexp, List Char)
+parseSexp input = 
   do
     parser <- generateParser sexp 
     parser (unpack input)

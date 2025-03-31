@@ -1,6 +1,7 @@
 module Test 
 
 import Examples.SExpressions
+import Examples.Json
 
 data TestResult = Pass | Failed String
 
@@ -30,21 +31,21 @@ sexample1 =
   MkTest 
     "String with single bracket" 
     (assertEq 
-      (runSexp "(Programming)") 
+      (parseSexp "(Programming)") 
       (Right (Sequence [Sym "Programming"], [])))
 
 sexample2 : Test
 sexample2 = 
   MkTest 
     "Just string without braces" 
-    (assertEq (runSexp "Programming") (Right (Sym "Programming", [])))
+    (assertEq (parseSexp "Programming") (Right (Sym "Programming", [])))
 
 sexample3 : Test
 sexample3 = 
   MkTest 
     "More braces with single string" 
     (assertEq 
-      (runSexp "(((Programming)))") 
+      (parseSexp "(((Programming)))") 
       (Right (Sequence [Sequence [Sequence [Sym "Programming"]]], [])))
 
 sexample4 : Test
@@ -52,7 +53,7 @@ sexample4 =
   MkTest 
     "More braces with more strings" 
     (assertEq 
-      (runSexp "(Functional((Programming)))") 
+      (parseSexp "(Functional((Programming)))") 
       (Right 
         (Sequence [Sym "Functional", Sequence [Sequence [Sym "Programming"]]], 
         [])))
@@ -62,7 +63,7 @@ sexample5 =
   MkTest 
     "Just empty braces" 
     (assertEq 
-      (runSexp "(())") 
+      (parseSexp "(())") 
       (Right (Sequence [Sequence []], [])))
 
 sexample6 : Test
@@ -70,14 +71,14 @@ sexample6 =
   MkTest
     "Braces in wrong order"
     (assertEq 
-      (runSexp ")Prog(") 
+      (parseSexp ")Prog(") 
       (Left "No Progress possible, unexpected token - ')'"))
 
 sexample7 : Test
 sexample7 = 
   MkTest
     "Incomplete sexpression string"
-    (assertEq (runSexp "(((Prog)") (Left "Unexpected end of stream"))
+    (assertEq (parseSexp "(((Prog)") (Left "Unexpected end of stream"))
 
 
 sexpTests : List Test 
@@ -93,5 +94,29 @@ sexpTests =
   ]
 
 
+-- JSON tests 
+jsonExample1 : Test
+jsonExample1 = 
+  MkTest 
+    "Json just string" 
+    (assertEq 
+      (parseJSON "\"Programming\"") 
+      (Right (JString "Programming", [])))
+
+
+jsonTests : List Test 
+jsonTests = 
+  [
+    jsonExample1
+  ]
+
+testSuiteName : String -> String 
+testSuiteName name = "----- \{show name} -----\n"
+
 main : IO ()
-main = runTests sexpTests
+main = 
+  do 
+    putStrLn $ testSuiteName "SExpression Tests"
+    runTests sexpTests
+    putStrLn $ testSuiteName "JSON Tests"
+    runTests jsonTests
