@@ -1,4 +1,5 @@
 .PHONY: clean build test
+.SILENT: clean test
 
 clean: 
 	echo "Removing build folder.."; rm -rf build
@@ -8,5 +9,6 @@ build:
 
 test:
 	idris2 --build test.ipkg
+	echo "Running Tests...\n"
 	build/exec/runtests
 	make clean
