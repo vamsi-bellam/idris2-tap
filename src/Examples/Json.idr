@@ -152,27 +152,22 @@ data JsonValue =
 
 export
 Eq JsonValue where
-  (==) = jsonEq where 
-    mutual 
-      jsonEq : JsonValue -> JsonValue -> Bool
-      jsonEq JNull JNull = True
-      jsonEq (JBool x) (JBool y) = x == y
-      jsonEq (JDecimal x) (JDecimal y) = x == y
-      jsonEq (JString x) (JString y) = x == y
-      jsonEq (JArray xs) (JArray ys) = listJsonEq xs ys
-      jsonEq (JObject xs) (JObject ys) = objectJsonEq xs ys
-      jsonEq _ _ = False
-
-      listJsonEq : List JsonValue -> List JsonValue -> Bool
-      listJsonEq [] [] = True
-      listJsonEq (x :: xs) (y :: ys) = jsonEq x y && listJsonEq xs ys
-      listJsonEq _ _ = False
-
-      objectJsonEq : List (String, JsonValue) -> List (String, JsonValue) -> Bool
-      objectJsonEq [] [] = True
-      objectJsonEq ((key1, value1) :: xs) ((key2, value2) :: ys) 
-        = key1 == key2 && jsonEq value1 value2 && objectJsonEq xs ys
-      objectJsonEq _ _ = False
+  JNull == JNull = True
+  JBool x == JBool y = x == y
+  JDecimal x == JDecimal y = x == y
+  JString x == JString y = x == y
+  JArray xs == JArray ys = listJsonEq xs ys where 
+    listJsonEq : List JsonValue -> List JsonValue -> Bool
+    listJsonEq [] [] = True
+    listJsonEq (x :: xs) (y :: ys) = x == y && listJsonEq xs ys
+    listJsonEq _ _ = False
+  JObject xs == JObject ys = objectJsonEq xs ys where
+    objectJsonEq : List (String, JsonValue) -> List (String, JsonValue) -> Bool
+    objectJsonEq [] [] = True
+    objectJsonEq ((key1, value1) :: xs) ((key2, value2) :: ys) 
+      = key1 == key2 && value1 == value2 && objectJsonEq xs ys
+    objectJsonEq _ _ = False
+  _ == _ = False
 
 export
 sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 

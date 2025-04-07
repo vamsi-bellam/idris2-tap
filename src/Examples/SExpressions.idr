@@ -32,17 +32,14 @@ data Sexp = Sym String | Sequence (List Sexp)
 
 export
 Eq Sexp where
-  (==) = sexpEq where 
-    mutual 
-      sexpEq : Sexp -> Sexp -> Bool
-      sexpEq (Sym x) (Sym y) = x == y
-      sexpEq (Sequence xs) (Sequence ys) = listSexpEq xs ys
-      sexpEq _ _ = False
-
+  Sym x == Sym y = x == y
+  Sequence xs == Sequence ys = listSexpEq xs ys
+    where
       listSexpEq : List Sexp -> List Sexp -> Bool
       listSexpEq [] [] = True
-      listSexpEq (x :: xs) (y :: ys) = sexpEq x y && listSexpEq xs ys
+      listSexpEq (x :: xs) (y :: ys) = x == y && listSexpEq xs ys
       listSexpEq _ _ = False
+  _ == _ = False
 
 export
 paren : {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
