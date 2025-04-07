@@ -30,6 +30,18 @@ rparen = MkGrammar bot (Map (always RParen) (charSet ")"))
 public export
 data Sexp = Sym String | Sequence (List Sexp)
 
+
+export
+Show Sexp where 
+  show (Sym str) = "Sym \{str}"
+  show (Sequence xs) = "[" ++ show' "" xs ++ "]" 
+    where
+      show' : String -> List Sexp -> String
+      show' acc [] = acc
+      show' acc [x] = acc ++ show x
+      show' acc (x :: xs) = show' (acc ++ show x ++ ", ") xs
+    
+
 export
 Eq Sexp where
   Sym x == Sym y = x == y

@@ -26,12 +26,14 @@ runTests tests = runTestsHelper tests (0, 0) where
       runTestsHelper xs (x+1, y+1)
   runTestsHelper ((MkTest name (Failed msg)) :: xs) (x, y) =
     do
-      putStrLn "\{name} : Failed - \{msg} \n"
+      putStrLn "\{name} : Failed \n\{msg} \n"
       runTestsHelper xs (x, y+1)
 
 
-assertEq : Eq a => (given : a) -> (expected : a) -> TestResult
-assertEq g e = if g == e then Pass else Failed "Expected not equal to given!"
+assertEq : Show a => Eq a => (given : a) -> (expected : a) -> TestResult
+assertEq g e = 
+  if g == e then Pass 
+  else Failed ("Expected - " ++ show e ++ "\n" ++ "Given - " ++ show g)
 
 -- SExpression tests 
 

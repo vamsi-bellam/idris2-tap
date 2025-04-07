@@ -7,14 +7,6 @@ import Env
 import Parser
 import Examples.Utils
 
-
-maybe : {ct : Vect n Type} -> Grammar ct a -> Grammar ct (Maybe a)
-maybe p = any [
-  MkGrammar bot (Map (\x => Just x) p),
-  MkGrammar bot (Eps Nothing)
-]
-
-
 data JsonToken : Type -> Type where
   TNull : JsonToken ()
   TTrue : JsonToken Bool
@@ -101,17 +93,6 @@ fullstringp =
       (MkGrammar bot (Seq (charSet "\"") (star (compCharSet "\"")))) 
       (charSet "\"") )))
 
-
-export
-stringp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (JsonToken String)
-stringp = 
-  MkGrammar bot
-  (Map (\((_, s), _) => TString (pack s)) 
-   (MkGrammar bot 
-    (Seq 
-      (MkGrammar bot (Seq (charSet "\"") (star (any [lower, upper, digit])))) 
-      (charSet "\"") )))
-
 export
 decimal : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (JsonToken Double)
 decimal = 
@@ -168,6 +149,31 @@ Eq JsonValue where
       = key1 == key2 && value1 == value2 && objectJsonEq xs ys
     objectJsonEq _ _ = False
   _ == _ = False
+
+
+Interpolation Double where 
+  interpolate d = cast d
+
+export
+Show JsonValue where 
+  show JNull = "JNull"
+  show (JBool True) = "JBool True"
+  show (JBool False) = "JBool False"
+  show (JDecimal dbl) = "JDecimal \{dbl}"
+  show (JString str) = "JString \{str}"
+  show (JArray xs) = "[" ++ show' "" xs ++ "]" 
+    where
+      show' : String -> List JsonValue -> String
+      show' acc [] = acc
+      show' acc [x] = acc ++ show x
+      show' acc (x :: xs) = show' (acc ++ show x ++ ", ") xs
+  show (JObject xs) = "{" ++ show' "" xs ++ "}" 
+    where
+      show' : String -> List (String, JsonValue) -> String
+      show' acc [] = acc
+      show' acc [(key, value)] = acc ++ key ++ " : " ++ show value
+      show' acc ((key, value) :: xs) = 
+        show' (acc ++ key ++ " : " ++ show value ++ ", ") xs
 
 export
 sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 

@@ -6,6 +6,13 @@ import Grammar
 
 
 export
+maybe : {ct : Vect n Type} -> Grammar ct a -> Grammar ct (Maybe a)
+maybe p = any [
+  MkGrammar bot (Map (\x => Just x) p),
+  MkGrammar bot (Eps Nothing)
+]
+
+export
 charSet : {ct : Vect n Type} -> String -> Grammar ct Char
 charSet str =  str |> unpack |> charSet'
   where
