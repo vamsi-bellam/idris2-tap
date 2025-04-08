@@ -37,30 +37,40 @@ assertEq g e =
 
 -- SExpression tests 
 
-sexample1 : Test
-sexample1 = 
+s1 : Test
+s1 = 
+  MkTest 
+    "Just String" 
+    (assertEq 
+      (parseSexp "Programming") 
+      (Right (Sym "Programming", [])))
+
+s2 : Test
+s2 = 
+  MkTest 
+    "Empty braces" 
+    (assertEq 
+      (parseSexp "(())") 
+      (Right (Sequence [Sequence []], [])))
+
+s3 : Test
+s3 = 
   MkTest 
     "String with single bracket" 
     (assertEq 
       (parseSexp "(Programming)") 
       (Right (Sequence [Sym "Programming"], [])))
 
-sexample2 : Test
-sexample2 = 
-  MkTest 
-    "String without braces" 
-    (assertEq (parseSexp "Programming") (Right (Sym "Programming", [])))
-
-sexample3 : Test
-sexample3 = 
+s4 : Test
+s4 = 
   MkTest 
     "More braces with single string" 
     (assertEq 
       (parseSexp "(((Programming)))") 
       (Right (Sequence [Sequence [Sequence [Sym "Programming"]]], [])))
 
-sexample4 : Test
-sexample4 = 
+s5 : Test
+s5 = 
   MkTest 
     "More braces with more strings" 
     (assertEq 
@@ -69,77 +79,101 @@ sexample4 =
         (Sequence [Sym "Functional", Sequence [Sequence [Sym "Programming"]]], 
         [])))
 
-sexample5 : Test
-sexample5 = 
-  MkTest 
-    "Empty braces" 
-    (assertEq 
-      (parseSexp "(())") 
-      (Right (Sequence [Sequence []], [])))
-
-sexample6 : Test
-sexample6 = 
+s6 : Test
+s6 = 
   MkTest
     "Braces in wrong order"
     (assertEq 
       (parseSexp ")Prog(") 
       (Left "No Progress possible, unexpected token - ')'"))
 
-sexample7 : Test
-sexample7 = 
+s7 : Test
+s7 = 
   MkTest
     "Incomplete sexpression string"
     (assertEq (parseSexp "(((Prog)") (Left "Unexpected end of stream"))
+
+s8 : Test
+s8 = 
+  MkTest
+    "Correct braces, but invalid string"
+    (assertEq (parseSexp "((*Programming))") 
+    (Left "No Progress possible, unexpected token - '*'"))
+
+s9 : Test
+s9 = 
+  MkTest
+    "Valid Sexp and have remaining string"
+    (assertEq (parseSexp "(Programming)12345") 
+    (Right (Sequence [Sym "Programming"], ['1', '2', '3', '4', '5'])))
+
+s10 : Test
+s10 = 
+  MkTest
+    "Long sexpression"
+    (assertEq 
+    (parseSexp "((Abd)(Bfbew)(Bfebwrew)((Jkedqbd)((((Ojdewbrbd)))))((Idbejqwrbwbd)(Pjqeqbd)(Ljdqwbebd)(Mqwjbebd)(Sdjebrbd)((Ygqveqdagdvewwhevq))))") 
+    (Right 
+      (Sequence [Sequence [Sym "Abd"], Sequence [Sym "Bfbew"], 
+       Sequence [Sym "Bfebwrew"], Sequence [Sequence [Sym "Jkedqbd"], 
+       Sequence [Sequence [Sequence [Sequence [Sym "Ojdewbrbd"]]]]], 
+       Sequence [Sequence [Sym "Idbejqwrbwbd"], Sequence [Sym "Pjqeqbd"], 
+       Sequence [Sym "Ljdqwbebd"], Sequence [Sym "Mqwjbebd"], 
+       Sequence [Sym "Sdjebrbd"], 
+       Sequence [Sequence [Sym "Ygqveqdagdvewwhevq"]]]], [])))
 
 
 sexpTests : List Test 
 sexpTests = 
   [
-    sexample1
-  , sexample2
-  , sexample3
-  , sexample4
-  , sexample5
-  , sexample6
-  , sexample7
+    s1
+  , s2
+  , s3
+  , s4
+  , s5
+  , s6
+  , s7
+  , s8
+  , s9
+  , s10
   ]
 
 
 -- JSON tests 
-jsonExample1 : Test
-jsonExample1 = 
+j1 : Test
+j1 = 
   MkTest 
     "Json - string" 
     (assertEq 
       (parseJSON "\"Programming\"") 
       (Right (JString "Programming", [])))
 
-jsonExample2 : Test
-jsonExample2 = 
+j2 : Test
+j2 = 
   MkTest 
     "Json - True" 
     (assertEq 
       (parseJSON "true") 
       (Right (JBool True, [])))
 
-jsonExample3 : Test
-jsonExample3 = 
+j3 : Test
+j3 = 
   MkTest 
     "Json - False" 
     (assertEq 
       (parseJSON "false") 
       (Right (JBool False, [])))
 
-jsonExample4 : Test
-jsonExample4 = 
+j4 : Test
+j4 = 
   MkTest 
     "Json - null" 
     (assertEq 
       (parseJSON "null") 
       (Right (JNull, [])))
 
-jsonExample5 : Test
-jsonExample5 = 
+j5 : Test
+j5 = 
   MkTest 
     "Json - Object" 
     (assertEq 
@@ -152,8 +186,8 @@ jsonExample5 =
           ], 
         [])))
 
-jsonExample6 : Test
-jsonExample6 = 
+j6 : Test
+j6 = 
   MkTest 
     "Json - Array" 
     (assertEq 
@@ -163,8 +197,8 @@ jsonExample6 =
           [JString "Fundamentals of PL", JDecimal 35.789, JNull, JBool False], 
         [])))
 
-jsonExample7 : Test
-jsonExample7 = 
+j7 : Test
+j7 = 
   MkTest 
     "Json string with special chars" 
     (assertEq 
@@ -172,16 +206,16 @@ jsonExample7 =
       (Right 
         (JString "!@#$%^&*()Qwertyuiop{}[\r\t]||Asdfghjkl:;'Zxcvbnm<,>.?", [])))
 
-jsonExample8 : Test
-jsonExample8 = 
+j8 : Test
+j8 = 
   MkTest 
     "Invalid Json" 
     (assertEq 
       (parseJSON "[false)") 
       ((Left "No Progress possible, unexpected token - ')'")))
 
-jsonExample9 : Test
-jsonExample9 = 
+j9 : Test
+j9 = 
   MkTest 
     "Incomplete Json" 
     (assertEq 
@@ -191,15 +225,15 @@ jsonExample9 =
 jsonTests : List Test 
 jsonTests = 
   [
-    jsonExample1
-  , jsonExample2
-  , jsonExample3
-  , jsonExample4
-  , jsonExample5
-  , jsonExample6
-  , jsonExample7
-  , jsonExample8
-  , jsonExample9
+    j1
+  , j2
+  , j3
+  , j4
+  , j5
+  , j6
+  , j7
+  , j8
+  , j9
   ]
 
 testSuiteName : String -> String 

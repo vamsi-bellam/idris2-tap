@@ -161,13 +161,13 @@ Show JsonValue where
   show (JBool False) = "JBool False"
   show (JDecimal dbl) = "JDecimal \{dbl}"
   show (JString str) = "JString \{str}"
-  show (JArray xs) = "[" ++ show' "" xs ++ "]" 
+  show (JArray xs) = "JArray [" ++ show' "" xs ++ "]" 
     where
       show' : String -> List JsonValue -> String
       show' acc [] = acc
       show' acc [x] = acc ++ show x
       show' acc (x :: xs) = show' (acc ++ show x ++ ", ") xs
-  show (JObject xs) = "{" ++ show' "" xs ++ "}" 
+  show (JObject xs) = "JObject {" ++ show' "" xs ++ "}" 
     where
       show' : String -> List (String, JsonValue) -> String
       show' acc [] = acc

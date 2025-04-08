@@ -34,7 +34,7 @@ data Sexp = Sym String | Sequence (List Sexp)
 export
 Show Sexp where 
   show (Sym str) = "Sym \{str}"
-  show (Sequence xs) = "[" ++ show' "" xs ++ "]" 
+  show (Sequence xs) = "Sequence [" ++ show' "" xs ++ "]" 
     where
       show' : String -> List Sexp -> String
       show' acc [] = acc

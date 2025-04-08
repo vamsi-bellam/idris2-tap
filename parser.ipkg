@@ -22,7 +22,7 @@ authors = "vamsi bellam"
 main = Main
 
 -- name of executable
--- executable =
+executable = runparser
 -- opts =
 sourcedir = "src"
 -- builddir =
