@@ -20,8 +20,11 @@ runParser parser = do
   input <- getLine 
   case (parser input) of 
     Left error => putStrLn "Error : \{error} \n"
-    Right (ans, rest) => 
-      putStrLn ("\nParsed Result => " ++ show ans ++ "\nRemaining String => " ++ pack rest ++ "\n")
+    Right (ans, rest) => do
+      putStrLn ("\nParsed Result => " ++ show ans)
+      case rest of 
+        [] => putStrLn "\nEntire input is parsed!! \n"
+        _ => putStrLn ("\nRemaining String => " ++ pack rest ++ "\n")
 
 
 

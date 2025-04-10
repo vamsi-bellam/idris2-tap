@@ -177,11 +177,11 @@ j5 =
   MkTest 
     "Json - Object" 
     (assertEq 
-      (parseJSON "{\"name\":\"vamsi\",\"age\":25,\"interests\":[\"cricket\"]}") 
+      (parseJSON "{\"name\":\"vamsi\",\"gpa\":3.85,\"interests\":[\"cricket\"]}") 
       (Right 
         (JObject 
           [ ("name", JString "vamsi")
-          , ("age", JDecimal 25.0)
+          , ("gpa", JDecimal 3.85)
           , ("interests", JArray [JString "cricket"])
           ], 
         [])))
