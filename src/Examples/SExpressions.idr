@@ -7,10 +7,6 @@ import Env
 import Parser
 import Examples.Utils
 
-
-always : a -> b -> a
-always x = \_ => x
-
 export
 data SToken : Type -> Type where 
   Symbol : String -> SToken String

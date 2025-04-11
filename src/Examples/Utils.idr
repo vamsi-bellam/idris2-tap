@@ -6,6 +6,10 @@ import Grammar
 
 
 export
+always : a -> b -> a
+always x = \_ => x
+
+export
 maybe : {ct : Vect n Type} -> Grammar ct a -> Grammar ct (Maybe a)
 maybe p = any [
   MkGrammar bot (Map (\x => Just x) p),
