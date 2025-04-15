@@ -1,6 +1,7 @@
 module Examples.SExpressions
 
 import Data.Vect
+import Data.String
 
 import Grammar
 import Env
@@ -85,5 +86,5 @@ parseSexp : String -> Either String (Sexp, List Char)
 parseSexp input = 
   do
     parser <- generateParser sexp 
-    parser (unpack input)
+    parser (unpack (ltrim input))
 

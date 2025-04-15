@@ -72,9 +72,9 @@ s4 =
 s5 : Test
 s5 = 
   MkTest 
-    "More braces with more strings and spaces" 
+    "More braces with more strings" 
     (assertEq 
-      (parseSexp "( Functional   (    (Programming))     )") 
+      (parseSexp "(Functional((Programming)))") 
       (Right 
         (Sequence [Sym "Functional", Sequence [Sequence [Sym "Programming"]]], 
         [])))
@@ -122,6 +122,15 @@ s10 =
        Sequence [Sym "Sdjebrbd"], 
        Sequence [Sequence [Sym "Ygqveqdagdvewwhevq"]]]], [])))
 
+s11 : Test
+s11 = 
+  MkTest 
+    "More braces with more strings and spaces" 
+    (assertEq 
+      (parseSexp "   ( Functional   (    (Programming))     )   ") 
+      (Right 
+        (Sequence [Sym "Functional", Sequence [Sequence [Sym "Programming"]]], 
+        [])))
 
 sexpTests : List Test 
 sexpTests = 
@@ -136,6 +145,7 @@ sexpTests =
   , s8
   , s9
   , s10
+  , s11
   ]
 
 
@@ -222,6 +232,44 @@ j9 =
       (parseJSON "[false,34,") 
       (Left "Unexpected end of stream"))
 
+j10 : Test
+j10 = 
+  MkTest 
+    "Json - With Spaces" 
+    (assertEq 
+      (parseJSON "{ \"name\" : \"vamsi\", \"gpa\" : 3.85, \"interests\" : [\"cricket\"] }") 
+      (Right 
+        (JObject 
+          [ ("name", JString "vamsi")
+          , ("gpa", JDecimal 3.85)
+          , ("interests", JArray [JString "cricket"])
+          ], 
+        [])))
+
+j11 : Test
+j11 = 
+  MkTest 
+    "Json - With New Lines" 
+    (assertEq 
+      (parseJSON exampleJSON) 
+      (Right 
+        (JObject 
+          [ ("name", JString "vamsi")
+          , ("gpa", JDecimal 3.85)
+          , ("interests", JArray [JString "cricket"])
+          ], 
+        [])))
+  where 
+    exampleJSON : String 
+    exampleJSON = 
+      """
+        { 
+          \"name\" : \"vamsi\", 
+          \"gpa\" : 3.85, 
+          \"interests\" : [\"cricket\"] 
+        }
+      """
+
 jsonTests : List Test 
 jsonTests = 
   [
@@ -234,6 +282,8 @@ jsonTests =
   , j7
   , j8
   , j9
+  , j10
+  , j11
   ]
 
 testSuiteName : String -> String 

@@ -60,14 +60,3 @@ skipEndWS g =
   MkGrammar 
     bot 
     (Map (\(x, _) => x) (MkGrammar bot (Seq g (star whitespace))))
-
-export
-skipStartWS : {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct a 
-skipStartWS g = 
-  MkGrammar 
-    bot 
-    (Map (\(_, x) => x) (MkGrammar bot (Seq (plus whitespace) g)))
-
-export
-token : {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
-token t = any [skipEndWS t, skipEndWS (skipStartWS t)]
