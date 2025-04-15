@@ -1,6 +1,7 @@
 module Examples.Json
 
 import Data.Vect
+import Data.String
 
 import Grammar
 import Env
@@ -198,7 +199,7 @@ sepByComma g =
                   (wekeanGrammar g)
                   (maybe (MkGrammar 
                             bot 
-                            (Seq comma (MkGrammar bot (Var Z))))))))))
+                            (Seq (skipEndWS comma) (MkGrammar bot (Var Z))))))))))
 
 
                           
@@ -209,9 +210,9 @@ member x =
     bot 
     (Map 
       (\((TString key, _), val) => (key, val)) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq fullstringp  colon)) x)))
+      (MkGrammar bot (Seq (MkGrammar bot (Seq (skipEndWS fullstringp)  (skipEndWS colon))) x)))
 
-value :  Grammar Nil JsonValue
+value : Grammar Nil JsonValue
 value = MkGrammar bot (Fix {a = JsonValue} value')
   where
     value' : Grammar [JsonValue] JsonValue
@@ -222,25 +223,24 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
               (Map 
                 (\kvpairs => JObject kvpairs) 
                 (between 
-                  lbrace 
+                  (skipEndWS lbrace) 
                   (sepByComma (member (MkGrammar bot (Var Z)))) 
-                  rbrace))
+                  (skipEndWS rbrace)))
           array = 
             MkGrammar 
               bot 
               (Map (\rest => JArray rest) 
-                (between lbracket (sepByComma (MkGrammar bot (Var Z))) rbracket))
-          decimal = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) decimal)
-          string = MkGrammar bot (Map (\(TString s) => JString s )  fullstringp )
-          null = MkGrammar bot (Map (\_ => JNull ) nullp)
-          true = MkGrammar bot (Map (\_ => JBool True ) truep)
-          false = MkGrammar bot (Map (\_ => JBool False ) falsep) in 
+                (between (skipEndWS lbracket) (sepByComma (MkGrammar bot (Var Z))) (skipEndWS rbracket)))
+          decimal = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) (skipEndWS decimal))
+          string = MkGrammar bot (Map (\(TString s) => JString s )  (skipEndWS fullstringp) )
+          null = MkGrammar bot (Map (\_ => JNull ) (skipEndWS nullp))
+          true = MkGrammar bot (Map (\_ => JBool True ) (skipEndWS truep))
+          false = MkGrammar bot (Map (\_ => JBool False ) (skipEndWS falsep)) in 
         any [object, array, decimal, string, null, true, false]
-
 
 export 
 parseJSON : String -> Either String (JsonValue, List Char)
 parseJSON input = 
   do
-    parser <- generateParser value 
-    parser (unpack input)
+    parser <- generateParser value
+    parser (unpack (ltrim input))
