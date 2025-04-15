@@ -72,9 +72,9 @@ s4 =
 s5 : Test
 s5 = 
   MkTest 
-    "More braces with more strings" 
+    "More braces with more strings and spaces" 
     (assertEq 
-      (parseSexp "(Functional((Programming)))") 
+      (parseSexp "( Functional   (    (Programming))     )") 
       (Right 
         (Sequence [Sym "Functional", Sequence [Sequence [Sym "Programming"]]], 
         [])))
