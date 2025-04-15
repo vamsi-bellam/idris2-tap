@@ -18,7 +18,7 @@ data SToken : Type -> Type where
   RParen : SToken ()
 
 symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (SToken String)
-symbol = MkGrammar bot (Map (\s => Symbol (pack s)) word)
+symbol = MkGrammar bot (Map (\s => Symbol (pack s)) (skipEndWS word))
 
 lparen : {ct : Vect n Type} -> Grammar ct (SToken ())
 lparen = MkGrammar bot (Map (always LParen) (charSet "("))
@@ -53,25 +53,15 @@ Eq Sexp where
       listSexpEq _ _ = False
   _ == _ = False
 
+
 export
-paren : {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
+paren : {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
 paren p = 
   MkGrammar 
     bot 
     (Map 
       (\((_, a), _) => a) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq lparen p)) rparen)))
-
-
-atom : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (SToken String)
-atom = 
-  MkGrammar 
-    bot 
-    (Map 
-      (\(first, rest) => Symbol (pack (first :: rest)))
-      (MkGrammar 
-        bot 
-        (Seq (any [lower, upper]) (star (any [lower, upper, digit])))))
+      (MkGrammar bot (Seq (MkGrammar bot (Seq (skipEndWS lparen) p)) (skipEndWS rparen))))
 
 export
 sexp : Grammar Nil Sexp
