@@ -14,15 +14,22 @@ data SToken : Type -> Type where
   LParen : SToken () 
   RParen : SToken ()
 
-symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (SToken String)
+public export
+data Token : Type where
+  Tok : {a : Type} -> Tag a -> a -> Token
+
+  
+symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (SToken String) Char
 symbol = MkGrammar bot (Map (\s => Symbol (pack s)) (skipEndWS word))
 
-lparen : {ct : Vect n Type} -> Grammar ct (SToken ())
+lparen : {ct : Vect n Type} -> Grammar ct (SToken ()) Char
 lparen = MkGrammar bot (Map (always LParen) (charSet "("))
 
-rparen : {ct : Vect n Type} -> Grammar ct (SToken ())
+rparen : {ct : Vect n Type} -> Grammar ct (SToken ()) Char
 rparen = MkGrammar bot (Map (always RParen) (charSet ")"))
 
+lexer2 : Grammar Nil (SToken a) Char
+lexer2 = any [lparen, symbol]
 
 public export
 data Sexp = Sym String | Sequence (List Sexp)
@@ -52,7 +59,7 @@ Eq Sexp where
 
 
 export
-paren : {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
+paren : {n : Nat} -> {ct : Vect n Type} -> Grammar ct a Char -> Grammar ct a Char
 paren p = 
   MkGrammar 
     bot 
@@ -60,12 +67,27 @@ paren p =
       (\((_, a), _) => a) 
       (MkGrammar bot (Seq (MkGrammar bot (Seq (skipEndWS lparen) p)) (skipEndWS rparen))))
 
+
 export
-sexp : Grammar Nil Sexp
+sexp2 : Ord a => Grammar Nil Sexp a
+sexp2 = 
+  MkGrammar bot (Fix {a = Sexp} sexp2')
+  where
+    sexp2' : Grammar [Sexp] Sexp a
+    sexp2' = 
+      MkGrammar 
+        bot 
+        (Alt 
+          (MkGrammar bot (Map (?lk) (wekeanGrammar ?lko))) 
+          ?fill_next)
+
+
+export
+sexp : Grammar Nil Sexp Char
 sexp = 
   MkGrammar bot (Fix {a = Sexp} sexp')
   where
-    sexp' : Grammar [Sexp] Sexp
+    sexp' : Grammar [Sexp] Sexp Char
     sexp' = 
       MkGrammar 
         bot 

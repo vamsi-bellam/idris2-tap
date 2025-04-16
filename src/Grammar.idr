@@ -6,39 +6,39 @@ import Env
 
 mutual
   public export
-  data GrammarType : {n : Nat} -> (ct : Vect n Type) -> (a : Type) -> Type where 
-    Eps : a -> GrammarType ct a
-    Seq : Grammar ct a -> Grammar ct b -> GrammarType ct (a, b)
-    Chr : Char -> GrammarType ct Char
-    Bot : GrammarType ct a
-    Alt : Grammar ct a -> Grammar ct a -> GrammarType ct a
-    Map : (a -> b) -> Grammar ct a -> GrammarType ct b
-    Fix : {a : Type} -> Grammar (a :: ct) a -> GrammarType ct a
-    Var : Var a ct -> GrammarType ct a
+  data GrammarType : {n : Nat} -> (ct : Vect n Type) -> (a : Type) -> (tok : Type) -> {auto 0 ot : Ord tok} -> Type where 
+    Eps : Ord tok => a -> GrammarType ct a tok
+    Seq : Ord tok => Grammar ct a tok -> Grammar ct b tok -> GrammarType ct (a, b) tok
+    Chr : Ord tok => tok -> GrammarType ct tok tok
+    Bot : Ord tok => GrammarType ct a tok
+    Alt : Ord tok => Grammar ct a tok -> Grammar ct a tok -> GrammarType ct a tok
+    Map : Ord tok => (a -> b) -> Grammar ct a tok -> GrammarType ct b tok
+    Fix : Ord tok => {a : Type} -> Grammar (a :: ct) a tok -> GrammarType ct a tok
+    Var : Ord tok =>  Var a ct -> GrammarType ct a tok
 
   public export
-  record Grammar (ct : Vect n Type) (a : Type) where
+  record Grammar (ct : Vect n Type) (a : Type) (tok : Type) {auto 0 ot : Ord tok} where
     constructor MkGrammar 
-    lang : LangType
-    gram : GrammarType ct a
+    lang : LangType tok
+    gram : GrammarType ct a tok
 
 mutual
   export
-  showGrammar : (Grammar n a) -> String
+  showGrammar : Ord tok => (Grammar n a tok) -> String
   showGrammar (MkGrammar lang gram) = 
     """
-    { lang = \{show lang}
+    { lang = "<fill>"
     , gram = \{showGrammarType gram}
     }
     """
 
   export
-  showGrammarType : (GrammarType n a) -> String
+  showGrammarType : Ord tok => (GrammarType n a tok) -> String
   -- Ideally, need to show x too, but that requires a to have Show interface 
   -- implemented and have that constraint at the type level.
   showGrammarType (Eps x) = "Eps <base_type>"
   showGrammarType (Seq x y) = "Seq \{showGrammar x} \{showGrammar y}"
-  showGrammarType (Chr c) = "Chr \{show c}"
+  showGrammarType (Chr c) = "Chr "
   showGrammarType Bot = "Bot"
   showGrammarType (Alt x y) = "Alt \{showGrammar x} \{showGrammar y}"
   showGrammarType (Map f x) = "Map <func> \{showGrammar x}"
@@ -47,15 +47,15 @@ mutual
 
 mutual 
   export
-  Show a => Show (Grammar n a) where 
+  Ord tok => Show a => Show (Grammar n a tok) where 
     show = showGrammar
 
   export
-  Show a => Show (GrammarType n a) where
+  Ord tok => Show a => Show (GrammarType n a tok) where
     show = showGrammarType
 
 
-addGaurd : LangType -> LangType
+addGaurd : LangType tok -> LangType tok
 addGaurd lt = {guarded := True} lt
 
 varToFin : {ct : Vect n Type} -> Var a ct -> Fin n
@@ -63,11 +63,11 @@ varToFin Z = FZ
 varToFin (S x) = FS (varToFin x)
 
 export
-typeof : (env : Vect n LangType) ->  {ct : Vect n Type} -> Grammar ct a 
-        -> Either String (Grammar ct a)
-typeof env (MkGrammar _ (Eps x)) = Right (MkGrammar eps (Eps x))
+typeof : Show tok => Ord tok => (env : Vect n (LangType tok)) ->  {ct : Vect n Type} -> Grammar ct a tok 
+        -> Either String (Grammar ct a tok)
+typeof env (MkGrammar  _ (Eps x)) = Right (MkGrammar eps (Eps x))
 
-typeof env (MkGrammar _ (Seq g1 g2)) = 
+typeof env (MkGrammar  _ (Seq g1 g2)) = 
   do 
     g1' <- typeof env g1 
     g2' <- typeof (map addGaurd env) g2
@@ -105,7 +105,7 @@ typeof env (MkGrammar _ (Fix g)) =
 typeof env (MkGrammar _ (Var x)) = Right (MkGrammar (index (varToFin x) env) (Var x))
 
 export
-typeCheck : Grammar Nil a -> Either String (Grammar Nil a)
+typeCheck : Ord tok => Show tok => Grammar Nil a tok -> Either String (Grammar Nil a tok)
 typeCheck g = typeof [] g
 
 
@@ -145,16 +145,16 @@ reindexVar var f prf =
   varFromFin (f (varToFin var))
 
 export
-mapGrammar : {m, n : Nat} -> {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
+mapGrammar : Ord tok => {m, n : Nat} -> {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
             (f : Fin m -> Fin n) -> 
             (prf : (i : Fin m) -> index i ct1 = index (f i) ct2) -> 
-            Grammar ct1 k -> Grammar ct2 k
+            Grammar ct1 k tok -> Grammar ct2 k tok
 mapGrammar f prf (MkGrammar l g) = MkGrammar l (mapGramType f prf g)
   where
     mapGramType : {m, n : Nat} -> {ct1 : Vect m Type} -> {ct2 : Vect n Type} -> 
                  (f : Fin m -> Fin n) -> 
                  (prf : (i : Fin m) -> index i ct1 = index (f i) ct2) -> 
-                 GrammarType ct1 h -> GrammarType ct2 h
+                 GrammarType ct1 h tok -> GrammarType ct2 h tok
     mapGramType f prf (Eps x) = Eps x
     mapGramType f prf (Seq g1 g2) = Seq (mapGrammar f prf g1) (mapGrammar f prf g2)
     mapGramType f prf (Chr c) = Chr c
@@ -167,8 +167,8 @@ mapGrammar f prf (MkGrammar l g) = MkGrammar l (mapGramType f prf g)
 
 
 export
-wekeanGrammar : {z : Type} -> {m : Nat} -> {ct : Vect m Type} -> 
-                Grammar ct k -> Grammar (z :: ct) k
+wekeanGrammar : Ord tok => {z : Type} -> {m : Nat} -> {ct : Vect m Type} -> 
+                Grammar ct k tok -> Grammar (z :: ct) k tok
 wekeanGrammar = mapGrammar f prf
   where 
     f : Fin m -> Fin (S m)
@@ -177,12 +177,12 @@ wekeanGrammar = mapGrammar f prf
     prf i = Refl
 
 export
-star : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
-        Grammar ct (List a)
+star : Ord tok => {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a tok -> 
+        Grammar ct (List a) tok
 star g = 
   MkGrammar bot (Fix {a = List a} (star' g))
   where
-    star' : Grammar ct a -> Grammar (List a :: ct) (List a)
+    star' : Grammar ct a tok -> Grammar (List a :: ct) (List a) tok
     star' g = 
       MkGrammar bot (Alt 
                       (MkGrammar bot (Eps []))
@@ -195,17 +195,17 @@ star g =
                             )))))
 
 export
-plus : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
-        Grammar ct (List a)
+plus : Ord tok => {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a tok -> 
+        Grammar ct (List a) tok
 plus g = 
   MkGrammar bot (Map (\(x, xs) => x :: xs) (MkGrammar bot (Seq g (star g))))
 
 export
-any : {ct : Vect n Type} -> List (Grammar ct a) -> Grammar ct a
+any : Ord tok => {ct : Vect n Type} -> List (Grammar ct a tok) -> Grammar ct a tok
 any lg = foldl (\g1, g2 => MkGrammar bot (Alt g1 g2)) (MkGrammar bot Bot) lg
 
 export
-bot : LangType
+bot : Ord tok => LangType tok
 bot = Language.bot
 
 

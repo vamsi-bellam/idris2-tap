@@ -1,6 +1,7 @@
 module Examples.Imp
 
 import Data.Vect
+import Data.String
 
 import Grammar
 import Env
@@ -334,9 +335,9 @@ Show Command where
 
 arith :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct AExp
 arith = 
-  let int = MkGrammar bot (Map (\(IInt v) => VInt v) intp) 
-      -- id = MkGrammar bot (Map (\(ILoc i) => Loc i) stp)
-      lis = any [ int]
+  let int = MkGrammar bot (Map (\(IInt v) => VInt v) (skipEndWS intp)) 
+      id = MkGrammar bot (Map (\(ILoc i) => Loc i) stp)
+      lis = any [int, id]
   in
   MkGrammar 
     bot 
@@ -347,16 +348,16 @@ arith =
                                             IMult => Mult (acc, rem)) x xs) 
       (MkGrammar 
         bot 
-        (Seq lis (star (MkGrammar bot (Seq (any [plus, minus, mult]) lis))))))
+        (Seq lis (star (MkGrammar bot (Seq (skipEndWS (any [plus, minus, mult])) lis))))))
 
 export
-paren : {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
+paren : {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> Grammar ct a
 paren p = 
   MkGrammar 
     bot 
     (Map 
       (\((_, a), _) => a) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq lparen p)) rparen)))
+      (MkGrammar bot (Seq (MkGrammar bot (Seq (skipEndWS lparen) p)) (skipEndWS rparen))))
       
 
 bool :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct BExp
@@ -364,8 +365,8 @@ bool = MkGrammar bot (Fix {a = BExp} bool')
   where
     bool' : {n : Nat} -> {ct' : Vect n Type} -> Grammar (BExp :: ct') BExp
     bool' = 
-      let true = MkGrammar bot (Map (\_ => VTrue) truep) 
-          false = MkGrammar bot (Map (\_ => VFalse) falsep) 
+      let true = MkGrammar bot (Map (\_ => VTrue) (skipEndWS truep)) 
+          false = MkGrammar bot (Map (\_ => VFalse) (skipEndWS falsep)) 
           eq = MkGrammar 
                 bot 
                 (Map 
@@ -376,7 +377,7 @@ bool = MkGrammar bot (Fix {a = BExp} bool')
                     bot 
                     (Seq 
                       (arith)
-                      (MkGrammar bot (Seq (any [equal, lte]) arith)))))
+                      (MkGrammar bot (Seq (skipEndWS (any [equal, lte])) arith)))))
           te = any [paren (MkGrammar bot (Var Z)), true, false, eq]
           nt = MkGrammar 
                   bot 
@@ -391,7 +392,7 @@ bool = MkGrammar bot (Fix {a = BExp} bool')
                                                             IOr => Or (acc, rem)) x xs) 
                       (MkGrammar 
                         bot 
-                        (Seq (te) (star (MkGrammar bot (Seq (any [and, or]) (any [te, nt])))))))
+                        (Seq (te) (star (MkGrammar bot (Seq (skipEndWS (any [and, or])) (any [te, nt])))))))
           ntes =   MkGrammar 
                     bot 
                     (Map 
@@ -400,7 +401,7 @@ bool = MkGrammar bot (Fix {a = BExp} bool')
                                                             IOr => Or (acc, rem)) x xs) 
                       (MkGrammar 
                         bot 
-                        (Seq (nt) (star (MkGrammar bot (Seq (any [and, or]) (any [te, nt])))))))
+                        (Seq (nt) (star (MkGrammar bot (Seq (skipEndWS (any [and, or])) (any [te, nt])))))))
       in
       any [ntes, tes]
 
@@ -409,12 +410,12 @@ command = MkGrammar bot (Fix {a = Command} command')
   where
     command' : Grammar [Command] Command
     command' = 
-      let skip = MkGrammar bot (Map (\_ => Skip) skip)
+      let skip = MkGrammar bot (Map (\_ => Skip) (skipEndWS skip))
           assign = MkGrammar 
                     bot 
                     (Map 
-                      (\(_, (ILoc id, (_, aexp))) => Assign (id, aexp)) 
-                      (MkGrammar bot (Seq letp (MkGrammar bot (Seq stp (MkGrammar bot (Seq assign arith))))))) 
+                      (\(ILoc id, (_, aexp)) => Assign (id, aexp)) 
+                      (MkGrammar bot (Seq (skipEndWS stp) (MkGrammar bot (Seq (skipEndWS assign) arith)))))
           ite = MkGrammar 
                 bot 
                 (Map 
@@ -422,7 +423,7 @@ command = MkGrammar bot (Fix {a = Command} command')
                   (MkGrammar 
                     bot 
                     (Seq 
-                      (ifp) 
+                      (skipEndWS ifp) 
                       (MkGrammar 
                         bot 
                         (Seq 
@@ -430,14 +431,14 @@ command = MkGrammar bot (Fix {a = Command} command')
                           (MkGrammar 
                             bot 
                             (Seq 
-                              (thenp) 
+                              (skipEndWS thenp) 
                               (MkGrammar 
                                 bot 
                                 (Seq 
                                   (MkGrammar bot (Var Z)) 
                                   (MkGrammar 
                                     bot 
-                                    (Seq elsep (MkGrammar bot (Var Z)))))))))))))
+                                    (Seq (skipEndWS elsep) (MkGrammar bot (Var Z)))))))))))))
           wd = MkGrammar 
                 bot 
                 (Map 
@@ -445,14 +446,14 @@ command = MkGrammar bot (Fix {a = Command} command')
                   (MkGrammar 
                     bot 
                     (Seq 
-                      (whilep) 
+                      (skipEndWS whilep) 
                       (MkGrammar 
                         bot 
                         (Seq 
                           (bool) 
                           (MkGrammar 
                             bot 
-                            (Seq (dop) (MkGrammar bot (Var Z)))))))) )
+                            (Seq (skipEndWS dop) (MkGrammar bot (Var Z)))))))) )
           lis = any [paren (MkGrammar bot (Var Z)), skip, assign]
           tes =   MkGrammar 
                     bot 
@@ -460,7 +461,7 @@ command = MkGrammar bot (Fix {a = Command} command')
                       (\(x, xs) => foldl (\acc, (_ , rem) => Seq (acc, rem)) x xs) 
                       (MkGrammar 
                         bot 
-                        (Seq (lis) (star (MkGrammar bot (Seq seq (lis)))))))
+                        (Seq (lis) (star (MkGrammar bot (Seq (skipEndWS seq) (lis)))))))
       in
       any [wd, ite, tes]
 
@@ -470,18 +471,18 @@ parsemb : String -> Either String (BExp, List Char)
 parsemb input = 
   do
     parser <- generateParser bool 
-    parser (unpack input)
+    parser (unpack (ltrim input))
 
 export 
 parsec : String -> Either String (Command, List Char)
 parsec input = 
   do
     parser <- generateParser command 
-    parser (unpack input)
+    parser (unpack (ltrim input))
 
 export 
 parsea : String -> Either String (AExp, List Char)
 parsea input = 
   do
     parser <- generateParser arith 
-    parser (unpack input)
+    parser (unpack (ltrim input))
