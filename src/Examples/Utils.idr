@@ -8,6 +8,11 @@ import Token
 
 
 export
+tok : {ct : Vect n Type} -> {tagType : Type -> Type} -> Tag tagType => 
+      (tagType a)  -> Grammar ct a tagType
+tok tag = MkGrammar bot (Chr tag)
+
+export
 always : a -> b -> a
 always x = \_ => x
 
@@ -66,7 +71,7 @@ compCharSet s =
   in charSet $ pack $ map cast flt 
 
 export
-digit : Ord tok => {ct : Vect n Type} -> Grammar ct Char CharTag
+digit : {ct : Vect n Type} -> Grammar ct Char CharTag
 digit = charSet "0123456789"
 
 
@@ -88,6 +93,15 @@ word =
 export
 whitespace : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Char CharTag
 whitespace = charSet " \t\n\r"
+
+
+export
+skipSpace : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a CharTag -> Grammar ct a CharTag
+skipSpace g = 
+  MkGrammar 
+    bot 
+    (Map (\x => snd x) (MkGrammar bot (Seq whitespace g)))
+
 
 export
 skipEndWS : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a CharTag -> Grammar ct a CharTag

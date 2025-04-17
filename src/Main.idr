@@ -1,7 +1,7 @@
 module Main
 
 import Examples.SExpressions
--- import Examples.Json
+import Examples.Json
 -- import Examples.Imp
 import Token
 
@@ -32,7 +32,7 @@ runParser parser = do
 
 handleOption : String -> IO ()
 handleOption "1" = runParser parseSexp
--- handleOption "2" = runParser parseJSON
+handleOption "2" = runParser parseJSON
 -- handleOption "3" = runParser parsec
 -- handleOption "4" = runParser parsemb
 -- handleOption "5" = runParser parsea

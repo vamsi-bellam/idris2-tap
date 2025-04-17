@@ -47,15 +47,12 @@ sexpToken =
   where
     sexpToken' : Grammar [Token SToken] (Token SToken) CharTag
     sexpToken' = 
-                (MkGrammar bot (Alt (symbol) 
-                (MkGrammar bot (Alt (lparen) 
-                (MkGrammar bot (Alt (rparen) 
-                (MkGrammar bot (Map (\arg => snd arg) 
-                (MkGrammar bot (Seq whitespace (MkGrammar bot (Var Z))))))))))))
-
--- lexer : Grammar Nil (List (Token SToken)) CharTag
--- lexer = plus sexpToken
-
+      any 
+        [ symbol
+        , lparen
+        , rparen
+        , skipSpace (MkGrammar bot (Var Z))
+        ]
 
 public export
 data Sexp = Sym String | Sequence (List Sexp)
@@ -93,8 +90,8 @@ paren p =
       (MkGrammar
         bot 
         (Seq 
-          (MkGrammar bot (Seq (MkGrammar bot (Chr LParen)) p)) 
-          (MkGrammar bot (Chr RParen)))))
+          (MkGrammar bot (Seq (tok LParen) p)) 
+          (tok RParen))))
 
 
 export
@@ -107,9 +104,8 @@ sexp2 =
       MkGrammar 
         bot 
         (Alt 
-          (MkGrammar bot (Map (\arg => Sym arg) (wekeanGrammar (MkGrammar bot (Chr Symbol))))) 
+          (MkGrammar bot (Map (\arg => Sym arg) (wekeanGrammar (tok Symbol)))) 
           (MkGrammar bot (Map (\arg2 => Sequence arg2) (paren (star (MkGrammar bot (Var Z)))))))
-
 
 export 
 lexSexp : List (Token CharTag) -> List (Token SToken) -> Either String (List (Token SToken), List (Token CharTag))
