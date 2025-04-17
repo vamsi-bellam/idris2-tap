@@ -5,10 +5,12 @@ import Data.Vect
 import Language
 import Grammar
 import Env
+import Token
+
 
 public export
-Parser : Type -> Type -> Type 
-Parser tok a  = List tok -> Either String (a, List tok)
+Parser : (Type -> Type) -> Type -> Type 
+Parser tok a  = List (Token tok) -> Either String (a, List (Token tok))
 
 bot : Parser tok a
 bot _ = Left "Impossible"
@@ -16,10 +18,14 @@ bot _ = Left "Impossible"
 eps : a -> Parser tok a
 eps v rest = Right (v, rest)
 
-chr : Show tok => Eq tok => tok -> Parser tok tok
-chr c [] = Left "Expected \{show c}, reached end of the stream"
-chr c (x :: xs) = 
-    if x == c then Right (x, xs) else Left "Expected \{show c}, got \{show x}"
+chr : {a : Type} -> {tok : Type -> Type} -> (c : tok a) -> Tag tok  =>  Show (Token tok) => Parser tok a
+chr c [] = Left "Expected \{print c}, reached end of the stream"
+chr c (x@(Tok tg v) :: xs) = case (compare c tg) of 
+                                    Leq => Left "Expected \{print c}, got \{print tg}"
+                                    Eql => Right(v, xs)
+                                    Geq => Left "Expected \{print c}, got \{print tg}"
+
+    -- if tg == c then Right (?lx, xs) else Left "Expected \{show c}, got \{show x}"
 
 seq : Parser tok a -> Parser tok b -> Parser tok (a, b)
 seq p1 p2 cs = 
@@ -28,15 +34,15 @@ seq p1 p2 cs =
     (b, rest) <- p2 rest
     Right ((a, b), rest)
 
-alt : Show tok => LangType tok -> Parser tok a -> LangType tok -> Parser tok a -> Parser tok a
+alt : Show (Token tok) => LangType (TokenType tok) -> Parser tok a -> LangType (TokenType tok) -> Parser tok a -> Parser tok a
 alt l1 p1 l2 p2 cs = 
   case head' cs of 
     Nothing =>  if l1.null then p1 cs 
                 else if l2.null then p2 cs 
                 else Left "Unexpected end of stream"
-    Just hd =>  if contains hd l1.first then 
+    Just (hd@(Tok tg v)) =>  if contains (TokType tg) l1.first then 
                   p1 cs
-                else if contains hd l2.first then
+                else if contains (TokType tg) l2.first then
                   p2 cs
                 else if l1.null then
                   p1 cs 
@@ -51,7 +57,7 @@ map f p cs =
     (a, rest) <- p cs
     Right (f a , rest)
 
-data ParseEnv : (tok : Type) -> Vect n Type -> Type where
+data ParseEnv : (tok : Type -> Type) -> Vect n Type -> Type where
   Empty  : ParseEnv tok []
   (::) : Parser tok a -> ParseEnv tok as -> ParseEnv tok (a :: as)
 
@@ -60,10 +66,10 @@ lookup Z (x :: _ ) = x
 lookup (S k) (_ :: xs) = lookup k xs
 
 export 
-parse : Show tok => Ord tok => {ct : Vect n Type} -> Grammar ct a tok -> ParseEnv tok ct -> Parser tok a
+parse : {a : Type} -> {tok : Type -> Type} -> Tag tok => {ct : Vect n Type} -> Grammar ct a tok -> ParseEnv tok ct -> Parser tok a
 parse (MkGrammar _ (Eps g)) penv = eps g
 
-parse (MkGrammar _ (Seq g1 g2)) penv = 
+parse (MkGrammar _ (Seq g1 g2)) penv =
   let p1 = parse g1 penv
       p2 = parse g2 penv
   in
@@ -91,15 +97,15 @@ parse (MkGrammar _ (Var var)) penv = lookup var penv
 
 
 export
-generateParser : Show tok => Ord tok => Grammar Nil a tok -> Either String (Parser tok a)
+generateParser : {a: Type} -> {tok : Type -> Type} -> Tag tok => Show (TokenType tok) => Ord (TokenType tok) => Grammar Nil a tok -> Either String (Parser tok a)
 generateParser gram = 
   do 
     typedGrammar <- typeCheck gram 
     Right (parse typedGrammar Empty)
 
 export
-runParser : Show tok => Eq tok => Either String (Parser tok a) ->  
-            List tok -> Either String (a , List tok)
+runParser : {a: Type} -> {tok : Type -> Type} -> Tag tok => Show (TokenType tok) => Ord (TokenType tok) => Either String (Parser tok a) ->  
+            List (Token tok) -> Either String (a , List (Token tok))
 runParser parser input = 
   do 
     parser <- parser
