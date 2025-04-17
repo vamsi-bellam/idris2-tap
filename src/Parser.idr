@@ -18,12 +18,12 @@ bot _ = Left "Impossible"
 eps : a -> Parser tok a
 eps v rest = Right (v, rest)
 
-chr : {a : Type} -> {tok : Type -> Type} -> (c : tok a) -> Tag tok  =>  Show (Token tok) => Parser tok a
-chr c [] = Left "Expected \{print c}, reached end of the stream"
+chr : {a : Type} -> {tok : Type -> Type} -> (c : tok a) -> Tag tok => Parser tok a
+chr c [] = Left "Expected \{Token.show c}, reached end of the stream"
 chr c (x@(Tok tg v) :: xs) = case (compare c tg) of 
-                                    Leq => Left "Expected \{print c}, got \{print tg}"
+                                    Leq => Left "Expected \{Token.show c}, got \{Token.show tg}"
                                     Eql => Right(v, xs)
-                                    Geq => Left "Expected \{print c}, got \{print tg}"
+                                    Geq => Left "Expected \{Token.show c}, got \{Token.show tg}"
 
     -- if tg == c then Right (?lx, xs) else Left "Expected \{show c}, got \{show x}"
 
@@ -34,7 +34,7 @@ seq p1 p2 cs =
     (b, rest) <- p2 rest
     Right ((a, b), rest)
 
-alt : Show (Token tok) => LangType (TokenType tok) -> Parser tok a -> LangType (TokenType tok) -> Parser tok a -> Parser tok a
+alt : {tok : Type -> Type} -> Tag tok => LangType (TokenType tok) -> Parser tok a -> LangType (TokenType tok) -> Parser tok a -> Parser tok a
 alt l1 p1 l2 p2 cs = 
   case head' cs of 
     Nothing =>  if l1.null then p1 cs 
@@ -49,7 +49,7 @@ alt l1 p1 l2 p2 cs =
                 else if l2.null then
                   p2 cs 
                 else 
-                  Left "No Progress possible, unexpected token - \{show hd}"  
+                  Left "No Progress possible, unexpected token - \{Token.show tg}"  
 
 map : (a -> b) -> Parser tok a -> Parser tok b
 map f p cs = 
@@ -97,14 +97,14 @@ parse (MkGrammar _ (Var var)) penv = lookup var penv
 
 
 export
-generateParser : {a: Type} -> {tok : Type -> Type} -> Tag tok => Show (TokenType tok) => Ord (TokenType tok) => Grammar Nil a tok -> Either String (Parser tok a)
+generateParser : {a: Type} -> {tok : Type -> Type} -> Tag tok => Grammar Nil a tok -> Either String (Parser tok a)
 generateParser gram = 
   do 
     typedGrammar <- typeCheck gram 
     Right (parse typedGrammar Empty)
 
 export
-runParser : {a: Type} -> {tok : Type -> Type} -> Tag tok => Show (TokenType tok) => Ord (TokenType tok) => Either String (Parser tok a) ->  
+runParser : {a: Type} -> {tok : Type -> Type} -> Tag tok => Either String (Parser tok a) ->  
             List (Token tok) -> Either String (a , List (Token tok))
 runParser parser input = 
   do 

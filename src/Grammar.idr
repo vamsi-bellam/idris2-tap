@@ -64,7 +64,7 @@ varToFin Z = FZ
 varToFin (S x) = FS (varToFin x)
 
 export
-typeof : {a : Type} -> Show (TokenType tok) => Ord (TokenType tok) => (env : Vect n (LangType (TokenType tok))) ->  {ct : Vect n Type} -> Grammar ct a tok 
+typeof : {a : Type} -> {tok : Type -> Type} -> Tag tok => (env : Vect n (LangType (TokenType tok))) ->  {ct : Vect n Type} -> Grammar ct a tok 
         -> Either String (Grammar ct a tok)
 typeof env (MkGrammar  _ (Eps x)) = Right (MkGrammar eps (Eps x))
 
@@ -106,7 +106,7 @@ typeof env (MkGrammar _ (Fix g)) =
 typeof env (MkGrammar _ (Var x)) = Right (MkGrammar (index (varToFin x) env) (Var x))
 
 export
-typeCheck : {a : Type} -> Ord (TokenType tok) => Show (TokenType tok) => Grammar Nil a tok -> Either String (Grammar Nil a tok)
+typeCheck : {a : Type} -> {tok : Type -> Type} -> Tag tok => Grammar Nil a tok -> Either String (Grammar Nil a tok)
 typeCheck g = typeof [] g
 
 
@@ -178,7 +178,7 @@ wekeanGrammar = mapGrammar f prf
     prf i = Refl
 
 export
-star : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Ord (TokenType tok) => Show (TokenType tok) => Grammar ct a tok -> 
+star : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> {tok : Type -> Type} -> Tag tok => Grammar ct a tok -> 
         Grammar ct (List a) tok
 star g = 
   MkGrammar bot (Fix {a = List a} (star' g))
@@ -196,17 +196,17 @@ star g =
                             )))))
 
 export
-plus :  Ord (TokenType tok) => Show (TokenType tok) => {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a tok -> 
+plus : {a : Type} -> {n : Nat} -> {ct : Vect n Type} ->  {tok : Type -> Type} -> Tag tok => Grammar ct a tok -> 
         Grammar ct (List a) tok
 plus g = 
   MkGrammar bot (Map (\(x, xs) => x :: xs) (MkGrammar bot (Seq g (star g))))
 
 export
-any : Ord (TokenType tok) => Show (TokenType tok) => {ct : Vect n Type} -> List (Grammar ct a tok) -> Grammar ct a tok
+any : {tok : Type -> Type} -> Tag tok => {ct : Vect n Type} -> List (Grammar ct a tok) -> Grammar ct a tok
 any lg = foldl (\g1, g2 => MkGrammar bot (Alt g1 g2)) (MkGrammar bot Bot) lg
 
 export
-bot : Ord (TokenType tok) => Show (TokenType tok) => LangType (TokenType tok)
+bot : {tok : Type -> Type} -> Tag tok => LangType (TokenType tok)
 bot = Language.bot
 
 

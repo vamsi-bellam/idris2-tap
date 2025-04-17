@@ -11,12 +11,12 @@ export
 always : a -> b -> a
 always x = \_ => x
 
--- export
--- maybe : Ord tok => {ct : Vect n Type} -> Grammar ct a tok -> Grammar ct (Maybe a) tok
--- maybe p = any [
---   MkGrammar bot (Map (\x => Just x) p),
---   MkGrammar bot (Eps Nothing)
--- ]
+export
+maybe : {a : Type} -> {tok : Type -> Type} -> Tag tok => {ct : Vect n Type} -> Grammar ct a tok -> Grammar ct (Maybe a) tok
+maybe p = any [
+  MkGrammar bot (Map (\x => Just x) p),
+  MkGrammar bot (Eps Nothing)
+]
 
 public export
 data CharTag : Type -> Type where 
@@ -33,7 +33,7 @@ Tag CharTag where
       EQ => Eql
       GT => Geq
 
-  print (CT c) = show c 
+  show (CT c) = show c 
 
 
 public export

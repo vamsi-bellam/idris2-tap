@@ -10,7 +10,7 @@ data Cmp : Type -> Type -> Type where
 public export
 interface Tag (t : Type -> Type) where
   compare : t a -> t b -> Cmp a b
-  print   : t a -> String   
+  show   : t a -> String   
 
 public export
 data Token : (Type -> Type) -> Type where
@@ -41,8 +41,8 @@ public export
 
 public export
 {t : Type -> Type} -> Tag t => Show (Token t) where
-  show (Tok x y) = print x
+  show (Tok x y) = show x
 
 public export
 {t : Type -> Type} -> Tag t => Show (TokenType t) where
-  show (TokType tag) = print tag
+  show (TokType tag) = show tag

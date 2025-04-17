@@ -9,7 +9,7 @@ import Parser
 import Examples.Utils
 import Token
 
-export
+public export
 data SToken : Type -> Type where 
   Symbol : SToken String
   LParen : SToken () 
@@ -27,21 +27,35 @@ Tag SToken where
   compare RParen LParen = Geq
 
 
-  print Symbol = "Symbol"
-  print LParen = "LParen"
-  print RParen = "RParen"
+  show Symbol = "Symbol"
+  show LParen = "LParen"
+  show RParen = "RParen"
   
 symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-symbol = MkGrammar bot (Map (\s => (Tok Symbol (pack s))) (skipEndWS word))
+symbol = MkGrammar bot (Map (\s => (Tok Symbol (pack s))) (word))
 
-lparen : {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-lparen = MkGrammar bot (Map (\_ => Tok LParen ()) (charSet "("))
+lparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
+lparen = MkGrammar bot (Map (\_ => Tok LParen ()) ((charSet "(")))
 
-rparen : {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-rparen = MkGrammar bot (Map (\_ => Tok RParen ()) (charSet ")"))
+rparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
+rparen = MkGrammar bot (Map (\_ => Tok RParen ()) ((charSet ")")))
 
-lexer : Grammar Nil (List (Token SToken)) CharTag
-lexer = star (any [lparen, symbol, rparen])
+export
+sexpToken : Grammar Nil (Token SToken) CharTag
+sexpToken = 
+  MkGrammar bot (Fix {a = Token SToken} sexpToken')
+  where
+    sexpToken' : Grammar [Token SToken] (Token SToken) CharTag
+    sexpToken' = 
+                (MkGrammar bot (Alt (symbol) 
+                (MkGrammar bot (Alt (lparen) 
+                (MkGrammar bot (Alt (rparen) 
+                (MkGrammar bot (Map (\arg => snd arg) 
+                (MkGrammar bot (Seq whitespace (MkGrammar bot (Var Z))))))))))))
+
+-- lexer : Grammar Nil (List (Token SToken)) CharTag
+-- lexer = plus sexpToken
+
 
 public export
 data Sexp = Sym String | Sequence (List Sexp)
@@ -98,17 +112,20 @@ sexp2 =
 
 
 export 
-lexSexp : String -> Either String (List (Token SToken), List (Token CharTag))
-lexSexp input = 
+lexSexp : List (Token CharTag) -> List (Token SToken) -> Either String (List (Token SToken), List (Token CharTag))
+lexSexp input acc = 
   do
-    parser <- generateParser lexer
-    parser (toTokens (ltrim input))
+    parser <- generateParser sexpToken
+    res <- parser input
+    case (snd res) of 
+          [] => Right(acc ++ [fst res] , [])
+          (rest) => lexSexp (rest) (acc ++ [fst res])
 
 export 
 parseSexp : String -> Either String (Sexp, List (Token SToken))
 parseSexp input = 
   do
-    lexedTokens <- lexSexp input
+    lexedTokens <- lexSexp (toTokens input) []
     parser <- generateParser sexp2
     parser (fst lexedTokens)
 
