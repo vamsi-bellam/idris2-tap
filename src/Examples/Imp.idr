@@ -21,12 +21,11 @@ b ::= true | false | a0 = a1 | a0 <= a1 | !b | b0 && b1 | b0 || b1 | (b)
 
 Commands 
 
-c ::= skip | X := a | c0;c1 | if b then c0 else c1 | while b do c | (c)
-
+c ::= skip | X := a | c0;c1 | if b then c0 else c1 done | while b do c done | (c)
 -}
 
 keywords : Vect 9 String
-keywords = ["if", "then", "else", "true", "false", "skip", "while", "do", "let"]
+keywords = ["if", "then", "else", "true", "false", "skip", "while", "do", "done"]
 
 data Aop = APlus | AMinus | AMult
 data Acmp = ALte | AEq
@@ -51,6 +50,7 @@ data IToken : Type -> Type where
   IIf : IToken ()
   IThen : IToken ()
   IElse : IToken ()
+  IDone : IToken ()
   IWhile : IToken ()
   IDo : IToken ()
   ILparen : IToken ()
@@ -129,6 +129,10 @@ Tag IToken where
   compare IElse    _        = Leq
   compare _        IElse    = Geq
 
+  compare IDone    IDone    = Eql
+  compare IDone    _        = Leq
+  compare _        IDone    = Geq
+
   compare IWhile   IWhile   = Eql
   compare IWhile   _        = Leq
   compare _        IWhile   = Geq
@@ -164,6 +168,7 @@ Tag IToken where
   show IIf      = "IIf"
   show IThen    = "IThen"
   show IElse    = "IElse"
+  show IDone    = "IDone"
   show IWhile   = "IWhile"
   show IDo      = "IDo"
   show ILparen  = "ILparen"
@@ -201,6 +206,7 @@ stp =
     mapToToken "if" = Tok IIf ()
     mapToToken "then" = Tok IThen ()
     mapToToken "else" = Tok IElse ()
+    mapToToken "done" = Tok IDone ()
     mapToToken "true" = Tok ITrue ()
     mapToToken "false" = Tok IFalse ()
     mapToToken "skip" = Tok ISkip ()
@@ -438,25 +444,39 @@ bool = MkGrammar bot (Fix {a = BExp} bool')
       in
       any [tes, ntes]
 
+
 command : Grammar Nil Command IToken
 command = MkGrammar bot (Fix {a = Command} command')
   where
     command' : Grammar [Command] Command IToken
     command' = 
+                       (MkGrammar bot
+                         (Map 
+                           (\(b, ms) => case ms of
+                                           Nothing => b
+                                           Just (_, c) => Seq (b, c))
+                           (MkGrammar bot
+                             (Seq 
+                               (any [baseCommand , paren baseCommand])
+                               (maybe (MkGrammar bot (Seq (tok ISeq) (MkGrammar bot (Var (Z))))))))))
+    where
+     baseCommand : Grammar [Command] Command IToken
+     baseCommand = 
       let skip = MkGrammar bot (Map (always Skip) (tok ISkip))
+          
           assign = MkGrammar 
-                    bot 
-                    (Map 
-                      (\(id, (_, aexp)) => Assign (id, aexp)) 
-                      (MkGrammar 
-                        bot 
-                        (Seq 
-                          (tok ILoc) 
-                          (MkGrammar bot (Seq (tok IAssign) arith)))))
-          ite = MkGrammar 
+                  bot 
+                  (Map 
+                    (\(id, (_, aexp)) => Assign (id, aexp)) 
+                    (MkGrammar 
+                      bot 
+                      (Seq 
+                        (tok ILoc) 
+                        (MkGrammar bot (Seq (tok IAssign) arith)))))
+          ifelse = MkGrammar 
                 bot 
                 (Map 
-                  (\(_, (b, (_, (c1, (_, c2))))) => ITE (b, c1, c2))  
+                  (\(_, (b, (_, (c1, (_, (c2, _)))))) => ITE (b, c1, c2))  
                   (MkGrammar 
                     bot 
                     (Seq 
@@ -475,63 +495,40 @@ command = MkGrammar bot (Fix {a = Command} command')
                                   (MkGrammar bot (Var Z)) 
                                   (MkGrammar 
                                     bot 
-                                    (Seq (tok IElse) (MkGrammar bot (Var Z)))))))))))))
-          wd = MkGrammar 
-                bot 
-                (Map 
-                  (\(_, (b, (_, c))) => While (b, c))  
-                  (MkGrammar 
-                    bot 
-                    (Seq 
-                      (tok IWhile) 
-                      (MkGrammar 
-                        bot 
-                        (Seq 
-                          (bool) 
-                          (MkGrammar 
-                            bot 
-                            (Seq (tok IDo) (MkGrammar bot (Var Z)))))))) )
-          lis = any [paren (MkGrammar bot (Var Z)), skip, assign]
-          tes =   MkGrammar 
-                    bot 
-                    (Map 
-                      (\(x, xs) => foldl (\acc, (_ , rem) => Seq (acc, rem)) x xs) 
-                      (MkGrammar 
-                        bot 
-                        (Seq (lis) (star (MkGrammar bot (Seq (tok ISeq) (lis)))))))
-      in
-      any [wd, ite, tes]
+                                    (Seq (tok IElse) (MkGrammar bot (Seq (MkGrammar bot (Var (Z))) (tok IDone))))))))))))))
+          whiledo = MkGrammar 
+              bot 
+              (Map 
+                (\(_, (b, (_, (c, _)))) => While (b, c))  
+                (MkGrammar 
+                  bot 
+                  (Seq 
+                    (tok IWhile) 
+                    (MkGrammar 
+                      bot 
+                      (Seq 
+                        bool 
+                        (MkGrammar 
+                          bot 
+                          (Seq (tok IDo) (MkGrammar bot (Seq (MkGrammar bot (Var (Z))) (tok IDone))))))))))
+      in any [skip, assign, whiledo, ifelse]
+
 
 export 
-lexImp : List (Token CharTag) -> List (Token IToken) -> Either String (List (Token IToken), List (Token CharTag))
-lexImp input acc = 
-  do
-    parser <- generateParser impToken
-    res <- parser input
-    case (snd res) of 
-          [] => Right(acc ++ [fst res] , [])
-          (rest) => lexImp (rest) (acc ++ [fst res])
+parseArith : String -> Either String AExp
+parseArith input = do 
+  lexedTokens <- lexer impToken input
+  parser arith lexedTokens
 
 export 
-parseArith : String -> Either String (AExp, List (Token IToken))
-parseArith input = 
-  do
-    lexedTokens <- lexImp (toTokens input) []
-    parser <- generateParser arith
-    parser (fst lexedTokens)
+parseBool : String -> Either String BExp
+parseBool input = do 
+  lexedTokens <- lexer impToken input
+  parser bool lexedTokens
 
 export 
-parseBool : String -> Either String (BExp, List (Token IToken))
-parseBool input = 
-  do
-    lexedTokens <- lexImp (toTokens input) []
-    parser <- generateParser bool
-    parser (fst lexedTokens)
+parseCommand : String -> Either String Command
+parseCommand input = do 
+  lexedTokens <- lexer impToken input
+  parser command lexedTokens
 
-export 
-parseCommand : String -> Either String (Command, List (Token IToken))
-parseCommand input = 
-  do
-    lexedTokens <- lexImp (toTokens input) []
-    parser <- generateParser command
-    parser (fst lexedTokens)

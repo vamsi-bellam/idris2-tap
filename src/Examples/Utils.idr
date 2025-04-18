@@ -116,3 +116,26 @@ haveEndWs g =
   MkGrammar 
     bot 
     (Map (\(x, _) => x) (MkGrammar bot (Seq g (plus whitespace))))
+
+export 
+lexer : {a : Type} -> Grammar Nil a CharTag -> String -> Either String (List a)
+lexer gram str = 
+  let lexer' : List (Token CharTag) -> List a -> Either String (List a)
+      lexer' tokens acc = do 
+        parser <- generateParser gram
+        res <- parser tokens
+        case (snd res) of 
+              [] => Right(acc ++ [fst res])
+              (rest) => lexer' (rest) (acc ++ [fst res])
+  in lexer' (toTokens str) [] 
+
+export 
+parser : {b : Type} -> {t : Type -> Type} -> Tag t => Grammar Nil b t -> 
+          (List (Token t)) -> Either String b
+parser gram tokens = do
+  parser <- generateParser gram
+  res <- parser tokens
+  case (snd res) of 
+    [] => Right (fst res)
+    _ => Left ("Unable to parse entire input, remaining tokens - " 
+          ++ show (snd res))

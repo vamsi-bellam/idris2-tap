@@ -108,20 +108,10 @@ sexp2 =
           (MkGrammar bot (Map (\arg2 => Sequence arg2) (paren (star (MkGrammar bot (Var Z)))))))
 
 export 
-lexSexp : List (Token CharTag) -> List (Token SToken) -> Either String (List (Token SToken), List (Token CharTag))
-lexSexp input acc = 
-  do
-    parser <- generateParser sexpToken
-    res <- parser input
-    case (snd res) of 
-          [] => Right(acc ++ [fst res] , [])
-          (rest) => lexSexp (rest) (acc ++ [fst res])
+parseSexp : String -> Either String Sexp
+parseSexp input = do 
+  lexedTokens <- lexer sexpToken input
+  parser sexp2 lexedTokens
 
-export 
-parseSexp : String -> Either String (Sexp, List (Token SToken))
-parseSexp input = 
-  do
-    lexedTokens <- lexSexp (toTokens input) []
-    parser <- generateParser sexp2
-    parser (fst lexedTokens)
+
 

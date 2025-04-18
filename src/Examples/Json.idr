@@ -326,20 +326,7 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
 
 
 export 
-lexJson : List (Token CharTag) -> List (Token JsonToken) -> 
-          Either String (List (Token JsonToken), List (Token CharTag))
-lexJson input acc = 
-  do
-    parser <- generateParser jsonToken
-    res <- parser input
-    case (snd res) of 
-          [] => Right(acc ++ [fst res] , [])
-          (rest) => lexJson (rest) (acc ++ [fst res])
-
-export 
-parseJSON : String -> Either String (JsonValue, List (Token JsonToken))
-parseJSON input = 
-  do
-    lexedTokens <- lexJson (toTokens input) []
-    parser <- generateParser value
-    parser (fst lexedTokens)
+parseJSON : String -> Either String JsonValue
+parseJSON input = do 
+  lexedTokens <- lexer jsonToken input
+  parser value lexedTokens

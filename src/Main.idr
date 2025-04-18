@@ -12,17 +12,18 @@ optionsNote =
   Select Parsers to use 
   1. Sexp 
   2. Json 
+  3. Imp Language
 
   Type :q to Quit \n
   """
 
-runParser : Show a => (String -> Either String (a, List b)) -> IO ()
+runParser : Show a => (String -> Either String a) -> IO ()
 runParser parser = do 
   putStrLn "\nPlease enter the input string \n"
   input <- getLine 
   case (parser input) of 
     Left error => putStrLn "Error : \{error} \n"
-    Right (ans, rest) => do
+    Right ans => do
       putStrLn ("\nParsed Result => " ++ show ans)
       -- case rest of 
       --   [] => putStrLn "\nEntire input is parsed!! \n"
