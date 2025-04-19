@@ -3,20 +3,20 @@ module Language
 import Data.SortedSet
 
 public export
-record LangType where 
+record LangType (tok : Type) where 
   constructor MkLangType
   null : Bool
-  first : SortedSet Char
-  follow : SortedSet Char
+  first : SortedSet tok
+  follow : SortedSet tok
   guarded : Bool
 
 export
-Eq LangType where 
+Eq tok => Eq (LangType tok) where 
   t1 == t2 = 
     t1.null == t2.null && t1.first == t2.first && t1.follow == t2.follow
 
 export
-Show LangType where 
+Show tok => Show (LangType tok) where 
   show (MkLangType null first follow guarded) = 
     """
     { null : \{show null}
@@ -27,7 +27,7 @@ Show LangType where
     """
 
 export
-char : Char -> LangType
+char : Ord tok => tok -> LangType tok
 char c = 
   MkLangType
     { null  = False
@@ -37,7 +37,7 @@ char c =
     }
 
 export
-eps : LangType 
+eps : Ord tok => LangType tok
 eps =
   MkLangType
     { null  = True
@@ -47,7 +47,7 @@ eps =
     }
 
 export 
-bot : LangType 
+bot : Ord tok => LangType tok
 bot = 
   MkLangType
     { null  = False
@@ -58,12 +58,12 @@ bot =
 
 
 export
-apart : LangType -> LangType -> Bool
+apart : Ord tok => LangType tok -> LangType tok -> Bool
 apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
 
 export
-seq : LangType -> LangType -> Either String LangType
+seq : Show tok => Ord tok => LangType tok -> LangType tok -> Either String (LangType tok)
 seq t1 t2 = 
   if apart t1 t2 then 
     Right(
@@ -85,13 +85,13 @@ seq t1 t2 =
             """)
 
 export
-disjoint : LangType -> LangType -> Bool
+disjoint : Ord tok => LangType tok -> LangType tok -> Bool
 disjoint t1 t2 = 
   not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
 
 export 
-alt : LangType -> LangType -> Either String LangType
+alt : Show tok => Ord tok => LangType tok -> LangType tok -> Either String (LangType tok)
 alt t1 t2 = 
   if disjoint t1 t2 then 
     Right(
@@ -110,7 +110,7 @@ alt t1 t2 =
               are not disjoint!
           """)
 
-min : LangType
+min : Ord tok => LangType tok
 min = 
   MkLangType
     { null  = False
@@ -120,11 +120,11 @@ min =
     }
 
 export
-fix : (Either String LangType -> Either String LangType) -> Either String LangType 
+fix : Ord tok => (Either String (LangType tok) -> Either String (LangType tok)) -> Either String (LangType tok) 
 fix f = fixHelper $ Right min
 
   where
-    fixHelper : Either String LangType -> Either String LangType 
+    fixHelper : Either String (LangType tok) -> Either String (LangType tok) 
     fixHelper t = 
       let t' = f t in 
       if t' == t then t else fixHelper t'

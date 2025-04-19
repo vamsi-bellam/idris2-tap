@@ -7,13 +7,14 @@ import Grammar
 import Env
 import Parser
 import Examples.Utils
+import Token
 
 data JsonToken : Type -> Type where
   TNull : JsonToken ()
   TTrue : JsonToken Bool
   TFalse : JsonToken Bool
-  TDecimal : Double -> JsonToken Double
-  TString : String -> JsonToken String
+  TDecimal : JsonToken Double
+  TString : JsonToken String
   TLBrace : JsonToken ()
   TRBrace : JsonToken ()
   TLBracket : JsonToken ()
@@ -21,36 +22,98 @@ data JsonToken : Type -> Type where
   TColon : JsonToken ()
   TComma : JsonToken ()
 
-export
-lbracket : {ct : Vect n Type} -> Grammar ct (JsonToken ()) 
-lbracket = MkGrammar bot (Map (\_ => TLBracket) (charSet "["))
+toInt : JsonToken a -> Int
+toInt TNull = 0
+toInt TTrue = 1
+toInt TFalse = 2
+toInt TDecimal = 3
+toInt TString = 4
+toInt TLBrace = 5
+toInt TRBrace = 6
+toInt TLBracket = 7
+toInt TRBracket = 8
+toInt TColon = 9
+toInt TComma = 10
+
+-- TNull < TTrue < TFalse < TDecimal < TString < TLBrace < TRBrace
+-- < TLBracket < TRBracket < TColon < TComma
+Tag JsonToken where
+  compare TNull TNull = Eql
+  compare TTrue TTrue = Eql
+  compare TFalse TFalse = Eql
+  compare TDecimal TDecimal = Eql
+  compare TString TString = Eql
+  compare TLBrace TLBrace = Eql
+  compare TRBrace TRBrace = Eql
+  compare TLBracket TLBracket = Eql
+  compare TRBracket TRBracket = Eql
+  compare TColon TColon = Eql
+  compare TComma TComma = Eql
+  compare TNull _ = Leq
+  compare _ TNull = Geq
+  compare TTrue _ = Leq 
+  compare _ TTrue = Geq
+  compare TFalse _ = Leq 
+  compare _ TFalse = Geq
+  compare TDecimal _ = Leq 
+  compare _ TDecimal = Geq
+  compare TString _ = Leq 
+  compare _ TString = Geq
+  compare TLBrace _ = Leq 
+  compare _ TLBrace = Geq
+  compare TRBrace _ = Leq 
+  compare _ TRBrace = Geq
+  compare TLBracket _ = Leq 
+  compare _ TLBracket = Geq
+  compare TRBracket _ = Leq 
+  compare _ TRBracket = Geq
+  compare TColon _ = Leq 
+  compare _ TColon = Geq
+  compare TComma _ = Leq 
+  compare _ TComma = Geq
+
+  show TNull = "TNull"
+  show TTrue = "TTrue"
+  show TFalse = "TFalse"
+  show TDecimal = "TDecimal"
+  show TString = "TString"
+  show TLBrace = "TLBrace"
+  show TRBrace = "TRBrace"
+  show TLBracket = "TLBracket"
+  show TRBracket = "TRBracket"
+  show TColon = "TColon"
+  show TComma = "TComma"
 
 export
-rbracket : {ct : Vect n Type} -> Grammar ct (JsonToken ())
-rbracket = MkGrammar bot (Map (\_ => TRBracket) (charSet "]"))
+lbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
+lbracket = MkGrammar bot (Map (\_ => (Tok TLBracket ())) (charSet "["))
 
 export
-lbrace : {ct : Vect n Type} -> Grammar ct (JsonToken ())
-lbrace = MkGrammar bot (Map (\_ => TLBrace) (charSet "{"))
+rbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
+rbracket = MkGrammar bot (Map (\_ => (Tok TRBracket ())) (charSet "]"))
 
 export
-rbrace : {ct : Vect n Type} -> Grammar ct (JsonToken ())
-rbrace = MkGrammar bot (Map (\_ => TRBrace) (charSet "}"))
+lbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
+lbrace = MkGrammar bot (Map (\_ => (Tok TLBrace ())) (charSet "{"))
 
 export
-comma : {ct : Vect n Type} -> Grammar ct (JsonToken ())
-comma = MkGrammar bot (Map (\_ => TComma) (charSet ","))
+rbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
+rbrace = MkGrammar bot (Map (\_ => (Tok TRBrace ())) (charSet "}"))
 
 export
-colon : {ct : Vect n Type} -> Grammar ct (JsonToken ())
-colon = MkGrammar bot (Map (\_ => TColon) (charSet ":"))
+comma : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
+comma =  MkGrammar bot (Map (\_ => (Tok TComma ())) (charSet ","))
+
+export
+colon : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
+colon =  MkGrammar bot (Map (\_ => (Tok TColon ())) (charSet ":"))
 
 
 export
-nullp : {ct : Vect n Type} -> Grammar ct (JsonToken ())
+nullp : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 nullp = 
   MkGrammar bot 
-  (Map (\_ => TNull) 
+  (Map (\_ => Tok TNull ()) 
     (MkGrammar bot 
       (Seq 
         (charSet "n") 
@@ -59,10 +122,10 @@ nullp =
             (MkGrammar bot (Seq (charSet "l") (charSet "l"))))))))
 
 export
-truep : {ct : Vect n Type} -> Grammar ct (JsonToken Bool)
+truep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 truep = 
   MkGrammar bot 
-  (Map (\_ => TTrue) 
+  (Map (\_ => Tok TTrue True) 
     (MkGrammar bot 
       (Seq 
         (charSet "t") 
@@ -71,10 +134,10 @@ truep =
             (MkGrammar bot (Seq (charSet "u") (charSet "e"))))))))
 
 export
-falsep : {ct : Vect n Type} -> Grammar ct (JsonToken Bool)
+falsep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 falsep = 
   MkGrammar bot 
-  (Map (\_ => TFalse) 
+  (Map (\_ => Tok TFalse False) 
     (MkGrammar bot 
       (Seq 
         (charSet "f") 
@@ -85,17 +148,17 @@ falsep =
                 (MkGrammar bot (Seq (charSet "s") (charSet "e"))))))))))
 
 export
-fullstringp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (JsonToken String)
+fullstringp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 fullstringp = 
   MkGrammar bot
-  (Map (\((_, s), _) => TString (pack s)) 
+  (Map (\((_, s), _) => Tok TString (pack s)) 
    (MkGrammar bot 
     (Seq 
       (MkGrammar bot (Seq (charSet "\"") (star (compCharSet "\"")))) 
       (charSet "\"") )))
 
 export
-decimal : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (JsonToken Double)
+decimal : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 decimal = 
   MkGrammar 
     bot
@@ -107,21 +170,33 @@ decimal =
           (plus digit) 
           (maybe (MkGrammar bot (Seq (charSet ".") (plus digit)))))))
   where 
-    toDecimal : (List Char, Maybe (Char, List Char)) -> JsonToken Double
-    toDecimal (num, Nothing) = TDecimal (cast $ pack num)
+    toDecimal : (List Char, Maybe (Char, List Char)) -> Token JsonToken
+    toDecimal (num, Nothing) = Tok TDecimal (cast $ pack num)
     toDecimal (num, (Just (dot, frac))) = 
-      TDecimal (cast $ pack (num ++ [dot] ++ frac))
+      Tok TDecimal (cast $ pack (num ++ [dot] ++ frac))
     
 
 export
-between : {ct : Vect n Type} -> Grammar ct a -> Grammar ct b  -> Grammar ct c
-        -> Grammar ct b
-between left p right = 
-  MkGrammar 
-    bot 
-    (Map 
-      (\((_, b), _) => b) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq left p)) right)))
+jsonToken : Grammar Nil (Token JsonToken) CharTag
+jsonToken = 
+  MkGrammar bot (Fix {a = Token JsonToken} jsonToken')
+  where
+    jsonToken' : Grammar [Token JsonToken] (Token JsonToken) CharTag
+    jsonToken' = 
+      any 
+        [ lbracket
+        , rbracket
+        , lbrace
+        , rbrace
+        , comma
+        , colon
+        , nullp
+        , truep
+        , falsep
+        , fullstringp
+        , decimal
+        , skipSpace (MkGrammar bot (Var Z))
+        ]
 
 public export
 data JsonValue = 
@@ -177,12 +252,23 @@ Show JsonValue where
         show' (acc ++ key ++ " : " ++ show value ++ ", ") xs
 
 export
-sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
-        Grammar ct (List a)
+between : {a, b, c : Type} -> {ct : Vect n Type} -> {k : Type -> Type} -> 
+          Tag k => Grammar ct a k -> Grammar ct b k -> Grammar ct c k
+        -> Grammar ct b k
+between left p right = 
+  MkGrammar 
+    bot 
+    (Map 
+      (\((_, b), _) => b) 
+      (MkGrammar bot (Seq (MkGrammar bot (Seq left p)) right)))
+
+export
+sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a JsonToken -> 
+        Grammar ct (List a) JsonToken
 sepByComma g = 
   MkGrammar bot (Fix {a = List a} (sepByComma' g))
   where
-    sepByComma' : Grammar ct a -> Grammar (List a :: ct) (List a)
+    sepByComma' : Grammar ct a JsonToken -> Grammar (List a :: ct) (List a) JsonToken
     sepByComma' g = 
       MkGrammar 
         bot 
@@ -199,23 +285,23 @@ sepByComma g =
                   (wekeanGrammar g)
                   (maybe (MkGrammar 
                             bot 
-                            (Seq (skipEndWS comma) (MkGrammar bot (Var Z))))))))))
+                            (Seq (tok TComma) (MkGrammar bot (Var Z))))))))))
 
 
                           
-member : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a -> 
-        Grammar ct (String, a)
+member : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a JsonToken -> 
+        Grammar ct (String, a) JsonToken
 member x = 
   MkGrammar 
     bot 
     (Map 
-      (\((TString key, _), val) => (key, val)) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq (skipEndWS fullstringp)  (skipEndWS colon))) x)))
+      (\((key, _), val) => (key, val)) 
+      (MkGrammar bot (Seq (MkGrammar bot (Seq (tok TString)  (tok TColon))) x)))
 
-value : Grammar Nil JsonValue
+value : Grammar Nil JsonValue JsonToken
 value = MkGrammar bot (Fix {a = JsonValue} value')
   where
-    value' : Grammar [JsonValue] JsonValue
+    value' : Grammar [JsonValue] JsonValue JsonToken
     value' = 
       let object = 
             MkGrammar 
@@ -223,24 +309,24 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
               (Map 
                 (\kvpairs => JObject kvpairs) 
                 (between 
-                  (skipEndWS lbrace) 
+                  (tok TLBrace) 
                   (sepByComma (member (MkGrammar bot (Var Z)))) 
-                  (skipEndWS rbrace)))
+                  (tok TRBrace)))
           array = 
             MkGrammar 
               bot 
               (Map (\rest => JArray rest) 
-                (between (skipEndWS lbracket) (sepByComma (MkGrammar bot (Var Z))) (skipEndWS rbracket)))
-          decimal = MkGrammar bot (Map (\(TDecimal db) => JDecimal db ) (skipEndWS decimal))
-          string = MkGrammar bot (Map (\(TString s) => JString s )  (skipEndWS fullstringp) )
-          null = MkGrammar bot (Map (\_ => JNull ) (skipEndWS nullp))
-          true = MkGrammar bot (Map (\_ => JBool True ) (skipEndWS truep))
-          false = MkGrammar bot (Map (\_ => JBool False ) (skipEndWS falsep)) in 
-        any [object, array, decimal, string, null, true, false]
+                (between (tok TLBracket) (sepByComma (MkGrammar bot (Var Z))) (tok TRBracket)))
+          decimal = MkGrammar bot (Map (\ db => JDecimal db ) (tok TDecimal))
+          string = MkGrammar bot (Map (\s => JString s ) (tok TString) )
+          null = MkGrammar bot (Map (\_ => JNull ) (tok TNull))
+          true = MkGrammar bot (Map (\_ => JBool True) (tok TTrue))
+          false = MkGrammar bot (Map (\_ => JBool False ) (tok TFalse)) in 
+      any [object, array, decimal, string, null, true, false]
+
 
 export 
-parseJSON : String -> Either String (JsonValue, List Char)
-parseJSON input = 
-  do
-    parser <- generateParser value
-    parser (unpack (ltrim input))
+parseJSON : String -> Either String JsonValue
+parseJSON input = do 
+  lexedTokens <- lexer jsonToken (trim input)
+  parser value lexedTokens
