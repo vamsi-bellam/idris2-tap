@@ -8,8 +8,11 @@ import Token
 
 
 export
-tok : {ct : Vect n Type} -> {tagType : Type -> Type} -> Tag tagType => 
-      (tagType a)  -> Grammar ct a tagType
+tok : {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> (tagType a)
+   -> Grammar ct a tagType
 tok tag = MkGrammar bot (Tok tag)
 
 export
@@ -17,12 +20,33 @@ always : a -> b -> a
 always x = \_ => x
 
 export
-maybe : {a : Type} -> {tok : Type -> Type} -> Tag tok => {ct : Vect n Type} -> 
-        Grammar ct a tok -> Grammar ct (Maybe a) tok
+maybe : {a : Type} 
+     -> {tok : Type -> Type} 
+     -> {auto _ : Tag tok} 
+     -> {ct : Vect n Type} 
+     -> Grammar ct a tok 
+     -> Grammar ct (Maybe a) tok
 maybe p = any [
   MkGrammar bot (Map (\x => Just x) p),
   MkGrammar bot (Eps Nothing)
 ]
+
+export
+between : {a, b, c : Type} 
+       -> {ct : Vect n Type} 
+       -> {k : Type -> Type} 
+       -> {auto _ : Tag k} 
+       -> Grammar ct a k 
+       -> Grammar ct b k 
+       -> Grammar ct c k
+       -> Grammar ct b k
+between left p right = 
+  MkGrammar 
+    bot 
+    (Map 
+      (\((_, b), _) => b) 
+      (MkGrammar bot (Seq (MkGrammar bot (Seq left p)) right)))
+
 
 public export
 data CharTag : Type -> Type where 
@@ -96,8 +120,11 @@ whitespace = charSet " \t\n\r"
 
 
 export
-skipSpace : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> 
-            Grammar ct a CharTag -> Grammar ct a CharTag
+skipSpace : {a : Type} 
+         -> {n : Nat} 
+         -> {ct : Vect n Type} 
+         -> Grammar ct a CharTag 
+         -> Grammar ct a CharTag
 skipSpace g = 
   MkGrammar 
     bot 
@@ -116,8 +143,12 @@ lexer gram input =
   in lexer' (toTokens input) [] 
 
 export 
-parser : {a : Type} -> {t : Type -> Type} -> Tag t => Grammar Nil a t -> 
-          (List (Token t)) -> Either String a
+parser : {a : Type} 
+      -> {t : Type -> Type} 
+      -> {auto _ : Tag t} 
+      -> Grammar Nil a t 
+      -> (List (Token t)) 
+      -> Either String a
 parser gram tokens = do
   parser <- generateParser gram
   res <- parser tokens

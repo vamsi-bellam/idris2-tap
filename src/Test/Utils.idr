@@ -50,7 +50,11 @@ runTestSuite (MkTestSuite name tests :: xs) = do
 
 
 public export
-assertEq : Show a => Eq a => (given : a) -> (expected : a) -> TestResult
+assertEq : {auto _ : Show a} 
+        -> {auto _ : Eq a} 
+        -> (given : a) 
+        -> (expected : a)
+        -> TestResult
 assertEq g e = 
   if g == e then Pass 
   else Failed ("Expected - " ++ show e ++ "\n" ++ "Given - " ++ show g)

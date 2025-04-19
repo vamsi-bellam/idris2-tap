@@ -22,8 +22,11 @@ bot _ = Left "Impossible"
 eps : a -> Parser tagType a
 eps v rest = Right (v, rest)
 
-token : {a : Type} -> {tagType : Type -> Type} -> Tag tagType => (c : tagType a) 
-        -> Parser tagType a
+token : {a : Type} 
+     -> {tagType : Type -> Type} 
+     -> {auto _ : Tag tagType} 
+     -> (c : tagType a)
+     -> Parser tagType a
 token c [] = Left "Expected \{Token.show c}, reached end of the stream"
 token c (Tok tg v :: xs) = 
   case (compare c tg) of 
@@ -37,9 +40,13 @@ seq p1 p2 cs =
     (b, rest) <- p2 rest
     Right ((a, b), rest)
 
-alt : {tagType : Type -> Type} -> Tag tagType => LangType (TokenType tagType) -> 
-      Parser tagType a -> LangType (TokenType tagType) -> Parser tagType a -> 
-      Parser tagType a
+alt : {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> LangType (TokenType tagType) 
+   -> Parser tagType a 
+   -> LangType (TokenType tagType) 
+   -> Parser tagType a 
+   -> Parser tagType a
 alt l1 p1 l2 p2 cs = 
   case head' cs of 
     Nothing =>  if l1.null then p1 cs 
@@ -72,9 +79,13 @@ lookup Z (x :: _ ) = x
 lookup (S k) (_ :: xs) = lookup k xs
 
 export 
-parse : {a : Type} -> {ct : Vect n Type} -> {tagType : Type -> Type} -> 
-        Tag tagType => Grammar ct a tagType -> ParseEnv tagType ct -> 
-        Parser tagType a
+parse : {a : Type} 
+     -> {ct : Vect n Type} 
+     -> {tagType : Type -> Type} 
+     -> {auto _ : Tag tagType} 
+     -> Grammar ct a tagType 
+     -> ParseEnv tagType ct 
+     -> Parser tagType a
 parse (MkGrammar _ (Eps g)) penv = eps g
 
 parse (MkGrammar _ (Seq g1 g2)) penv =
@@ -105,8 +116,11 @@ parse (MkGrammar _ (Var var)) penv = lookup var penv
 
 
 export
-generateParser : {a: Type} -> {tagType : Type -> Type} -> Tag tagType => 
-                  Grammar Nil a tagType -> Either String (Parser tagType a)
+generateParser : {a: Type} 
+              -> {tagType : Type -> Type} 
+              -> {auto _ : Tag tagType} 
+              -> Grammar Nil a tagType 
+              -> Either String (Parser tagType a)
 generateParser gram = 
   do 
     typedGrammar <- typeCheck gram 

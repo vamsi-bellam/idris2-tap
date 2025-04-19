@@ -170,8 +170,9 @@ fullstringp =
       (charSet "\"") )))
 
 export
-decimal : {n : Nat} -> {ct : Vect n Type} -> 
-          Grammar ct (Token JsonToken) CharTag
+decimal : {n : Nat} 
+       -> {ct : Vect n Type} 
+       -> Grammar ct (Token JsonToken) CharTag
 decimal = 
   MkGrammar 
     bot
@@ -265,19 +266,11 @@ Show JsonValue where
         show' (acc ++ key ++ " : " ++ show value ++ ", ") xs
 
 export
-between : {a, b, c : Type} -> {ct : Vect n Type} -> {k : Type -> Type} -> 
-          Tag k => Grammar ct a k -> Grammar ct b k -> Grammar ct c k
-        -> Grammar ct b k
-between left p right = 
-  MkGrammar 
-    bot 
-    (Map 
-      (\((_, b), _) => b) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq left p)) right)))
-
-export
-sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> 
-              Grammar ct a JsonToken -> Grammar ct (List a) JsonToken
+sepByComma : {a : Type} 
+          -> {n : Nat} 
+          -> {ct : Vect n Type} 
+          -> Grammar ct a JsonToken 
+          -> Grammar ct (List a) JsonToken
 sepByComma g = 
   MkGrammar bot (Fix {a = List a} (sepByComma' g))
   where
@@ -303,8 +296,11 @@ sepByComma g =
 
 
                           
-member : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a JsonToken 
-          -> Grammar ct (String, a) JsonToken
+member : {a : Type} 
+      -> {n : Nat} 
+      -> {ct : Vect n Type} 
+      -> Grammar ct a JsonToken 
+      -> Grammar ct (String, a) JsonToken
 member x = 
   MkGrammar 
     bot 
@@ -312,11 +308,11 @@ member x =
       (\((key, _), val) => (key, val)) 
       (MkGrammar bot (Seq (MkGrammar bot (Seq (tok TString)  (tok TColon))) x)))
 
-value : Grammar Nil JsonValue JsonToken
-value = MkGrammar bot (Fix {a = JsonValue} value')
+json : Grammar Nil JsonValue JsonToken
+json = MkGrammar bot (Fix {a = JsonValue} json')
   where
-    value' : Grammar [JsonValue] JsonValue JsonToken
-    value' = 
+    json' : Grammar [JsonValue] JsonValue JsonToken
+    json' = 
       let object = 
             MkGrammar 
               bot 
@@ -346,4 +342,4 @@ export
 parseJSON : String -> Either String JsonValue
 parseJSON input = do 
   lexedTokens <- lexer jsonToken (trim input)
-  parser value lexedTokens
+  parser json lexedTokens

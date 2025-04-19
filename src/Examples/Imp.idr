@@ -13,7 +13,7 @@ import Token
 
 Arithmetic Expressions 
 
-a ::= n | X | a0 + a1 | a0 - a1 | a0 * a1 
+a ::= n | X | a0 + a1 | a0 - a1 | a0 * a1
 
 Boolean Expressions 
 
@@ -21,11 +21,23 @@ b ::= true | false | a0 = a1 | a0 <= a1 | !b | b0 && b1 | b0 || b1 | (b)
 
 Commands 
 
-c ::= skip | X := a | c0;c1 | if b then c0 else c1 done | while b do c done | (c)
+c ::= skip | X := a | c0;c1 | if b then c0 else c1 done 
+      | while b do c done | (c)
+
 -}
 
 keywords : Vect 9 String
-keywords = ["if", "then", "else", "true", "false", "skip", "while", "do", "done"]
+keywords = 
+  ["if"
+  , "then"
+  , "else"
+  , "true"
+  , "false"
+  , "skip"
+  , "while"
+  , "do"
+  , "done"
+  ]
 
 data Aop = APlus | AMinus | AMult
 data Acmp = ALte | AEq
@@ -407,33 +419,12 @@ Show Command where
     show' (b, c) = "(" ++ show b ++ ", " ++ show c ++ ")"
 
 
-
-arith :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct AExp IToken
-arith = 
-  let int = MkGrammar bot (Map (\v => VInt v) (tok IInt)) 
-      id = MkGrammar bot (Map (\i => Loc i) (tok ILoc))
-      toks = any [int, id]
-  in
-  MkGrammar 
-    bot 
-    (Map 
-      (\(x, xs) => 
-        foldl (\acc, (op , rem) => 
-          case op of 
-                APlus => Plus (acc, rem)
-                AMinus => Minus (acc, rem)
-                AMult => Mult (acc, rem)) x xs) 
-      (MkGrammar 
-        bot 
-        (Seq 
-          toks 
-          (star (MkGrammar 
-                  bot 
-                  (Seq ((any [tok IPlus, tok IMinus, tok IMult])) toks))))))
-
 export
-paren : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a IToken -> 
-        Grammar ct a IToken
+paren : {a : Type} 
+     -> {n : Nat} 
+     -> {ct : Vect n Type} 
+     -> Grammar ct a IToken 
+     -> Grammar ct a IToken
 paren p = 
   MkGrammar 
     bot 
@@ -441,6 +432,31 @@ paren p =
       (\((_, a), _) => a) 
       (MkGrammar bot (Seq (MkGrammar bot (Seq (tok ILparen) p)) (tok IRParen))))
       
+
+arith :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct AExp IToken
+arith =  
+    let int = MkGrammar bot (Map (\v => VInt v) (tok IInt)) 
+        id = MkGrammar bot (Map (\i => Loc i) (tok ILoc))
+        toks = any [int, id]
+    in
+      MkGrammar 
+        bot 
+        (Map 
+          (\(x, y) => case y of 
+                        Nothing => x 
+                        Just (APlus, z) => Plus (x, z)
+                        Just (AMinus, z) => Minus (x, z)
+                        Just (AMult, z) => Mult (x, z)) 
+          (MkGrammar 
+            bot 
+            (Seq 
+              (toks) 
+              (maybe (MkGrammar 
+                        bot 
+                        (Seq 
+                          (any [tok IPlus, tok IMinus, tok IMult]) 
+                          (toks)))))))
+
 
 bool :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct BExp IToken
 bool = MkGrammar bot (Fix {a = BExp} bool')

@@ -27,8 +27,8 @@ Show tok => Show (LangType tok) where
     """
 
 export
-char : Ord tok => tok -> LangType tok
-char c = 
+tok : {auto _ : Ord tok} -> tok -> LangType tok
+tok c = 
   MkLangType
     { null  = False
     , first = singleton c
@@ -37,7 +37,7 @@ char c =
     }
 
 export
-eps : Ord tok => LangType tok
+eps : {auto _ : Ord tok} -> LangType tok
 eps =
   MkLangType
     { null  = True
@@ -47,7 +47,7 @@ eps =
     }
 
 export 
-bot : Ord tok => LangType tok
+bot : {auto _ : Ord tok} -> LangType tok
 bot = 
   MkLangType
     { null  = False
@@ -58,12 +58,16 @@ bot =
 
 
 export
-apart : Ord tok => LangType tok -> LangType tok -> Bool
+apart : {auto _ : Ord tok} -> LangType tok -> LangType tok -> Bool
 apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
 
 export
-seq : Show tok => Ord tok => LangType tok -> LangType tok -> Either String (LangType tok)
+seq : {auto _ : Show tok} 
+   -> {auto _ : Ord tok} 
+   -> LangType tok 
+   -> LangType tok 
+   -> Either String (LangType tok)
 seq t1 t2 = 
   if apart t1 t2 then 
     Right(
@@ -85,14 +89,17 @@ seq t1 t2 =
             """)
 
 export
-disjoint : Ord tok => LangType tok -> LangType tok -> Bool
+disjoint : {auto _ : Ord tok} -> LangType tok -> LangType tok -> Bool
 disjoint t1 t2 = 
   not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
 
 export 
-alt : Show tok => Ord tok => LangType tok -> LangType tok -> 
-      Either String (LangType tok)
+alt : {auto _ : Show tok} 
+   -> {auto _ : Ord tok} 
+   -> LangType tok 
+   -> LangType tok 
+   -> Either String (LangType tok)
 alt t1 t2 = 
   if disjoint t1 t2 then 
     Right(
@@ -111,7 +118,7 @@ alt t1 t2 =
               are not disjoint!
           """)
 
-min : Ord tok => LangType tok
+min : {auto _ : Ord tok} -> LangType tok
 min = 
   MkLangType
     { null  = False
@@ -121,8 +128,9 @@ min =
     }
 
 export
-fix : Ord tok => (Either String (LangType tok) -> Either String (LangType tok)) 
-      -> Either String (LangType tok) 
+fix : {auto _ : Ord tok} 
+   -> (f : Either String (LangType tok) -> Either String (LangType tok)) 
+   -> Either String (LangType tok) 
 fix f = fixHelper $ Right min
 
   where
