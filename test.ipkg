@@ -20,7 +20,7 @@ authors = "vamsi bellam"
 
 
 -- main file (i.e. file to load at REPL)
-main = Test
+main = Test.Test
 
 -- name of executable
 executable = runtests

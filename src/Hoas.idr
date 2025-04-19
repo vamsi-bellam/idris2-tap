@@ -1,102 +1,102 @@
-module Hoas
+-- module Hoas
 
-import Grammar
-import Data.Vect
-import Parser
-import Env
-import Debug.Trace
-import Decidable.Equality
-
-
-public export
-data Ctx : Vect n Type -> Type where
-  Nil  : Ctx []
-  (::) : (a : Type) -> Ctx as -> Ctx (a :: as)
-
-len : Ctx ct  -> Nat
-len [] = 0
-len (x :: y) = S (len y)
-
-HT : Type -> Type
-HT a = {n : Nat} -> {ct : Vect n Type} -> Ctx ct -> Grammar ct a 
-
-Show (HT a) where 
-  show _ = "<abstract>"
-
-eps : HT ()
-eps _ = MkGrammar bot (Eps ())
-
-char : Char -> HT Char
-char c _ = MkGrammar bot (Tok c)
-
-seq : HT a -> HT b -> HT (a, b)
-seq f g ctx = MkGrammar bot (Seq (f ctx) (g ctx))
-
-bot : HT a
-bot _ = MkGrammar bot Bot
-
-alt : HT a -> HT a -> HT a
-alt f g ctx = MkGrammar bot (Alt (f ctx) (g ctx))
+-- import Grammar
+-- import Data.Vect
+-- import Parser
+-- import Env
+-- import Debug.Trace
+-- import Decidable.Equality
 
 
-tshift : {a : Type} -> {ct1 : Vect n Type} -> {ct2 : Vect m Type} ->
-          Nat -> (ctx1 : Ctx ct1) -> (ctx2 : Ctx (a :: ct2)) -> Var a ct1
-tshift Z (x :: xs) (y :: ys) = ?ff
-tshift (S k) (x :: xs) (ys)  = S (tshift k xs ys)
-tshift _ _ _ = believe_me ()
+-- public export
+-- data Ctx : Vect n Type -> Type where
+--   Nil  : Ctx []
+--   (::) : (a : Type) -> Ctx as -> Ctx (a :: as)
 
-data Extends : Ctx ct1 -> Ctx ct2 -> Type where
-  Same  : Extends ctx ctx              
-  Extend : Extends ctx1 ctx2 -> Extends (a :: ctx1) ctx2
+-- len : Ctx ct  -> Nat
+-- len [] = 0
+-- len (x :: y) = S (len y)
 
-tshift' : {a : Type} -> {ct1 : Vect n Type} -> {ct2 : Vect m Type} ->
-          (ctx1 : Ctx ct1) -> (ctx2 : Ctx (a :: ct2)) -> 
-          Extends ctx1 ctx2 -> Var a ct1
-tshift' ctx ctx Same = Z
-tshift' (x :: ctx1) ctx2 (Extend prf) = S (tshift' ctx1 ctx2 prf)
+-- HT : Type -> Type
+-- HT a = {n : Nat} -> {ct : Vect n Type} -> Ctx ct -> Grammar ct a 
 
-fix : {a : Type} -> (HT a -> HT a) -> HT a
-fix f ctx = 
-  let ctx' = (a :: ctx) 
-      mkHT : HT a
-      mkHT ctx1 = 
-        MkGrammar 
-          bot 
-          (Var (tshift' ctx1 ctx' (believe_me {b = Extends ctx1 ctx'} ())))
-  in
-  MkGrammar bot (Fix ((f (mkHT)) ctx'))
+-- Show (HT a) where 
+--   show _ = "<abstract>"
 
--- testing examples
-ctx' : Ctx [Int]
-ctx' = Int :: Nil
+-- eps : HT ()
+-- eps _ = MkGrammar bot (Eps ())
 
-ctx : Ctx [Bool, Int] 
-ctx = Bool :: (Int :: Nil)
+-- char : Char -> HT Char
+-- char c _ = MkGrammar bot (Tok c)
 
-example : Var Int [Bool, Int]
-example = tshift' ctx ctx' (Extend Same)
+-- seq : HT a -> HT b -> HT (a, b)
+-- seq f g ctx = MkGrammar bot (Seq (f ctx) (g ctx))
 
-example1 : Var Int [Bool, Int]
-example1 = tshift' ctx ctx' (believe_me {b = Extends ctx ctx'} ())
+-- bot : HT a
+-- bot _ = MkGrammar bot Bot
+
+-- alt : HT a -> HT a -> HT a
+-- alt f g ctx = MkGrammar bot (Alt (f ctx) (g ctx))
 
 
-map : (a -> b) -> HT a -> HT b
-map f g ctx = MkGrammar bot (Map f (g ctx))
+-- tshift : {a : Type} -> {ct1 : Vect n Type} -> {ct2 : Vect m Type} ->
+--           Nat -> (ctx1 : Ctx ct1) -> (ctx2 : Ctx (a :: ct2)) -> Var a ct1
+-- tshift Z (x :: xs) (y :: ys) = ?ff
+-- tshift (S k) (x :: xs) (ys)  = S (tshift k xs ys)
+-- tshift _ _ _ = believe_me ()
 
-any : List (HT a) -> HT a
-any ls = foldl alt bot ls
+-- data Extends : Ctx ct1 -> Ctx ct2 -> Type where
+--   Same  : Extends ctx ctx              
+--   Extend : Extends ctx1 ctx2 -> Extends (a :: ctx1) ctx2
 
-always : a -> b -> a
-always x = \_ => x
+-- tshift' : {a : Type} -> {ct1 : Vect n Type} -> {ct2 : Vect m Type} ->
+--           (ctx1 : Ctx ct1) -> (ctx2 : Ctx (a :: ct2)) -> 
+--           Extends ctx1 ctx2 -> Var a ct1
+-- tshift' ctx ctx Same = Z
+-- tshift' (x :: ctx1) ctx2 (Extend prf) = S (tshift' ctx1 ctx2 prf)
 
-star : {a : Type} -> HT a -> HT (List a)
-star g = 
-  fix (\rest => 
-        any 
-          [ map (always []) eps 
-          , map (\(c, cs) => c :: cs) (seq g rest) 
-          ] 
-      )
+-- fix : {a : Type} -> (HT a -> HT a) -> HT a
+-- fix f ctx = 
+--   let ctx' = (a :: ctx) 
+--       mkHT : HT a
+--       mkHT ctx1 = 
+--         MkGrammar 
+--           bot 
+--           (Var (tshift' ctx1 ctx' (believe_me {b = Extends ctx1 ctx'} ())))
+--   in
+--   MkGrammar bot (Fix ((f (mkHT)) ctx'))
+
+-- -- testing examples
+-- ctx' : Ctx [Int]
+-- ctx' = Int :: Nil
+
+-- ctx : Ctx [Bool, Int] 
+-- ctx = Bool :: (Int :: Nil)
+
+-- example : Var Int [Bool, Int]
+-- example = tshift' ctx ctx' (Extend Same)
+
+-- example1 : Var Int [Bool, Int]
+-- example1 = tshift' ctx ctx' (believe_me {b = Extends ctx ctx'} ())
+
+
+-- map : (a -> b) -> HT a -> HT b
+-- map f g ctx = MkGrammar bot (Map f (g ctx))
+
+-- any : List (HT a) -> HT a
+-- any ls = foldl alt bot ls
+
+-- always : a -> b -> a
+-- always x = \_ => x
+
+-- star : {a : Type} -> HT a -> HT (List a)
+-- star g = 
+--   fix (\rest => 
+--         any 
+--           [ map (always []) eps 
+--           , map (\(c, cs) => c :: cs) (seq g rest) 
+--           ] 
+--       )
 
 -- typeCheck : HT a -> Either String (Grammar Nil a)
 -- typeCheck parser = typeof [] (parser Nil) 
