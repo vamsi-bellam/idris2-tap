@@ -7,7 +7,7 @@ import Data.Vect
 
 import Language
 import Grammar
-import Env
+import Var
 import Token
 
 
@@ -77,8 +77,7 @@ data ParseEnv : (tagType : Type -> Type) -> Vect n Type -> Type where
 lookup : Var a ct -> ParseEnv tagType ct -> Parser tagType a 
 lookup Z (x :: _ ) = x
 lookup (S k) (_ :: xs) = lookup k xs
-
-export 
+ 
 parse : {a : Type} 
      -> {ct : Vect n Type} 
      -> {tagType : Type -> Type} 

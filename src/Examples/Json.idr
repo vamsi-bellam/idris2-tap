@@ -4,10 +4,11 @@ import Data.Vect
 import Data.String
 
 import Grammar
-import Env
+import Var
 import Parser
-import Examples.Utils
 import Token
+
+import Examples.Utils
 
 data JsonToken : Type -> Type where
   TNull : JsonToken ()
@@ -21,19 +22,6 @@ data JsonToken : Type -> Type where
   TRBracket : JsonToken ()
   TColon : JsonToken ()
   TComma : JsonToken ()
-
-toInt : JsonToken a -> Int
-toInt TNull = 0
-toInt TTrue = 1
-toInt TFalse = 2
-toInt TDecimal = 3
-toInt TString = 4
-toInt TLBrace = 5
-toInt TRBrace = 6
-toInt TLBracket = 7
-toInt TRBracket = 8
-toInt TColon = 9
-toInt TComma = 10
 
 -- TNull < TTrue < TFalse < TDecimal < TString < TLBrace < TRBrace
 -- < TLBracket < TRBracket < TColon < TComma
@@ -95,32 +83,32 @@ Tag JsonToken where
   show TColon = "TColon"
   show TComma = "TComma"
 
-export
+
 lbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 lbracket = MkGrammar bot (Map (always (Tok TLBracket ())) (charSet "["))
 
-export
+
 rbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 rbracket = MkGrammar bot (Map (always (Tok TRBracket ())) (charSet "]"))
 
-export
+
 lbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 lbrace = MkGrammar bot (Map (always (Tok TLBrace ())) (charSet "{"))
 
-export
+
 rbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 rbrace = MkGrammar bot (Map (always (Tok TRBrace ())) (charSet "}"))
 
-export
+
 comma : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 comma =  MkGrammar bot (Map (always (Tok TComma ())) (charSet ","))
 
-export
+
 colon : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 colon =  MkGrammar bot (Map (always (Tok TColon ())) (charSet ":"))
 
 
-export
+
 nullp : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 nullp = 
   MkGrammar bot 
@@ -132,7 +120,7 @@ nullp =
           (Seq (charSet "u") 
             (MkGrammar bot (Seq (charSet "l") (charSet "l"))))))))
 
-export
+
 truep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 truep = 
   MkGrammar bot 
@@ -144,7 +132,7 @@ truep =
           (Seq (charSet "r") 
             (MkGrammar bot (Seq (charSet "u") (charSet "e"))))))))
 
-export
+
 falsep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 falsep = 
   MkGrammar bot 
@@ -158,7 +146,7 @@ falsep =
               (Seq (charSet "l") 
                 (MkGrammar bot (Seq (charSet "s") (charSet "e"))))))))))
 
-export
+
 fullstringp : {n : Nat} -> {ct : Vect n Type} -> 
               Grammar ct (Token JsonToken) CharTag
 fullstringp = 
@@ -169,7 +157,7 @@ fullstringp =
       (MkGrammar bot (Seq (charSet "\"") (star (compCharSet "\"")))) 
       (charSet "\"") )))
 
-export
+
 decimal : {n : Nat} 
        -> {ct : Vect n Type} 
        -> Grammar ct (Token JsonToken) CharTag
@@ -190,7 +178,7 @@ decimal =
       Tok TDecimal (cast $ pack (num ++ [dot] ++ frac))
     
 
-export
+
 jsonToken : Grammar Nil (Token JsonToken) CharTag
 jsonToken = 
   MkGrammar bot (Fix {a = Token JsonToken} jsonToken')
@@ -265,7 +253,7 @@ Show JsonValue where
       show' acc ((key, value) :: xs) = 
         show' (acc ++ key ++ " : " ++ show value ++ ", ") xs
 
-export
+
 sepByComma : {a : Type} 
           -> {n : Nat} 
           -> {ct : Vect n Type} 
@@ -338,7 +326,7 @@ json = MkGrammar bot (Fix {a = JsonValue} json')
       any [object, array, decimal, string, null, true, false]
 
 
-export 
+export
 parseJSON : String -> Either String JsonValue
 parseJSON input = do 
   lexedTokens <- lexer jsonToken (trim input)

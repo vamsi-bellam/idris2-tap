@@ -4,10 +4,11 @@ import Data.Vect
 import Data.String
 
 import Grammar
-import Env
-import Examples.Utils
+import Var
 import Parser
 import Token
+
+import Examples.Utils
 
 {- 
 
@@ -194,7 +195,6 @@ lparen = MkGrammar bot (Map (always (Tok ILparen ())) (charSet "("))
 rparen : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 rparen = MkGrammar bot (Map (always (Tok IRParen ())) (charSet ")"))
 
-export
 intp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 intp = 
   MkGrammar 
@@ -203,7 +203,6 @@ intp =
       (\xs => Tok IInt (cast $ pack xs)) 
       (plus digit))
 
-export
 stp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 stp = 
   MkGrammar 
@@ -226,12 +225,9 @@ stp =
     mapToToken "do" = Tok IDo ()
     mapToToken str = Tok ILoc str
 
- 
-export
 plus : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 plus = MkGrammar bot (Map (always (Tok IPlus APlus)) (charSet "+"))
 
-export
 minus : {n : Nat } -> {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 minus = 
   MkGrammar
@@ -242,16 +238,12 @@ minus =
                         Just rest => Tok IInt (cast $ pack (x :: rest)) )) 
       (MkGrammar bot (Seq (charSet "-") (maybe (plus digit)))))
 
-export
 mult : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 mult = MkGrammar bot (Map (always (Tok IMult AMult)) (charSet "*"))
 
-export
 equal : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 equal = MkGrammar bot (Map (always (Tok IEqual AEq)) (charSet "="))
 
-
-export
 lte : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 lte = 
   MkGrammar 
@@ -260,11 +252,9 @@ lte =
       (always (Tok ILTE ALte)) 
       (MkGrammar bot (Seq (charSet "<") (charSet "="))))
 
-export
 not : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 not = MkGrammar bot (Map (always (Tok INot ())) (charSet "!"))
 
-export
 and : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 and = 
   MkGrammar 
@@ -273,7 +263,6 @@ and =
       (always (Tok IAnd BAnd)) 
       (MkGrammar bot (Seq (charSet "&") (charSet "&"))))
 
-export
 or : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 or = 
   MkGrammar 
@@ -282,8 +271,6 @@ or =
       (always (Tok IOr BOr)) 
       (MkGrammar bot (Seq (charSet "|") (charSet "|"))))
 
-
-export
 assign : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 assign = 
   MkGrammar 
@@ -292,12 +279,9 @@ assign =
       (always (Tok IAssign ())) 
       (MkGrammar bot (Seq (charSet ":") (charSet "="))))
 
-export
 seq : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 seq = MkGrammar bot (Map (always (Tok ISeq ())) (charSet ";"))
 
-
-export
 impToken : Grammar Nil (Token IToken) CharTag
 impToken = 
   MkGrammar bot (Fix {a = Token IToken} impToken')
@@ -418,8 +402,6 @@ Show Command where
     show' : (BExp, Command) -> String 
     show' (b, c) = "(" ++ show b ++ ", " ++ show c ++ ")"
 
-
-export
 paren : {a : Type} 
      -> {n : Nat} 
      -> {ct : Vect n Type} 
@@ -432,7 +414,6 @@ paren p =
       (\((_, a), _) => a) 
       (MkGrammar bot (Seq (MkGrammar bot (Seq (tok ILparen) p)) (tok IRParen))))
       
-
 arith :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct AExp IToken
 arith =  
     let int = MkGrammar bot (Map (\v => VInt v) (tok IInt)) 

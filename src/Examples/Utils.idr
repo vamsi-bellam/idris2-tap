@@ -48,12 +48,9 @@ between left p right =
       (MkGrammar bot (Seq (MkGrammar bot (Seq left p)) right)))
 
 
-public export
+export
 data CharTag : Type -> Type where 
   CT : Char -> CharTag Char
-
-FromChar (CharTag Char) where 
-  fromChar h = CT h
 
 public export
 Tag CharTag where 
@@ -66,7 +63,7 @@ Tag CharTag where
   show (CT c) = show c 
 
 
-public export
+export
 toTokens : String -> (List (Token CharTag))
 toTokens input = toTokens' (unpack input) where 
   toTokens' : List Char -> (List (Token CharTag))

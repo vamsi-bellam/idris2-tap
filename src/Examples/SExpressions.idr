@@ -4,12 +4,13 @@ import Data.Vect
 import Data.String
 
 import Grammar
-import Env
+import Var
 import Parser
-import Examples.Utils
 import Token
 
-public export
+import Examples.Utils
+
+export
 data SToken : Type -> Type where 
   Symbol : SToken String
   LParen : SToken () 
@@ -41,7 +42,6 @@ lparen = MkGrammar bot (Map (\_ => Tok LParen ()) ((charSet "(")))
 rparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
 rparen = MkGrammar bot (Map (\_ => Tok RParen ()) ((charSet ")")))
 
-export
 sexpToken : Grammar Nil (Token SToken) CharTag
 sexpToken = 
   MkGrammar bot (Fix {a = Token SToken} sexpToken')
@@ -81,7 +81,6 @@ Eq Sexp where
   _ == _ = False
 
 
-export
 paren : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a SToken 
         -> Grammar ct a SToken
 paren p = 
@@ -95,8 +94,6 @@ paren p =
           (MkGrammar bot (Seq (tok LParen) p)) 
           (tok RParen))))
 
-
-export
 sexpression : Grammar Nil Sexp SToken
 sexpression = 
   MkGrammar bot (Fix {a = Sexp} sexpression')

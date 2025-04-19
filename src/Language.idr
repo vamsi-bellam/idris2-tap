@@ -56,12 +56,6 @@ bot =
     , guarded = True
     }
 
-
-export
-apart : {auto _ : Ord tok} -> LangType tok -> LangType tok -> Bool
-apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
-
-
 export
 seq : {auto _ : Show tok} 
    -> {auto _ : Ord tok} 
@@ -87,12 +81,10 @@ seq t1 t2 =
               \{show t2}
               are not apart!
             """)
-
-export
-disjoint : {auto _ : Ord tok} -> LangType tok -> LangType tok -> Bool
-disjoint t1 t2 = 
-  not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
-
+  
+  where 
+    apart : LangType tok -> LangType tok -> Bool
+    apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
 export 
 alt : {auto _ : Show tok} 
@@ -117,6 +109,10 @@ alt t1 t2 =
               \{show t2}
               are not disjoint!
           """)
+  where 
+    disjoint : LangType tok -> LangType tok -> Bool
+    disjoint t1 t2 = 
+      not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
 min : {auto _ : Ord tok} -> LangType tok
 min = 

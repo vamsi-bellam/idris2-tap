@@ -3,7 +3,7 @@ module Grammar
 import Data.Vect
 
 import Language
-import Env
+import Var
 import Token
 
 mutual
@@ -146,7 +146,6 @@ typeCheck : {a : Type}
          -> Grammar Nil a tagType 
          -> Either String (Grammar Nil a tagType)
 typeCheck gram = typeof [] gram
-
 
 
 extendedFn : {m, n : Nat} -> (f : Fin m -> Fin n) -> Fin (S m) -> Fin (S n)
