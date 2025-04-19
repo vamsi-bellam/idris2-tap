@@ -303,12 +303,21 @@ impToken =
         ]
 
 
+public export
 data AExp = 
   VInt Int 
   | Loc String 
   | Plus (AExp, AExp) 
   | Minus (AExp, AExp) 
   | Mult (AExp, AExp)
+
+Eq AExp where 
+  (VInt i) == (VInt j) = i == j
+  (Loc id1) == (Loc id2) =  id1 == id2
+  (Plus (a1, a2)) == (Plus (b1, b2)) = (a1 == b1 && a2 == b2)
+  (Minus (a1, a2)) == (Minus (b1, b2)) =  (a1 == b1 && a2 == b2)
+  (Mult (a1, a2)) == (Mult (b1, b2)) = (a1 == b1 && a2 == b2)
+  _ == _ = False
 
 export
 Show AExp where
@@ -321,7 +330,8 @@ Show AExp where
     where
       show' : (AExp, AExp) -> String 
       show' (a1, a2) = "(" ++ show a1 ++ ", " ++ show a2 ++ ")"
-  
+
+public export 
 data BExp = 
   VTrue 
   | VFalse 
@@ -331,6 +341,15 @@ data BExp =
   | And (BExp, BExp)
   | Or (BExp, BExp)
 
+Eq BExp where
+  VTrue == VTrue = True
+  VFalse == VFalse = True
+  (Eq (a1, a2)) == (Eq (b1, b2)) = (a1 == b1 && a2 == b2)
+  (LTE (a1, a2)) == (LTE (b1, b2)) = (a1 == b1 && a2 == b2)
+  (Not x) == (Not y) = x == y
+  (And (a1, a2)) == (And (b1, b2)) = (a1 == b1 && a2 == b2)
+  (Or (a1, a2)) == (Or (b1, b2)) = (a1 == b1 && a2 == b2)
+  _ == _ = False
 
 export
 Show BExp where 
@@ -347,6 +366,7 @@ Show BExp where
     show' : (BExp, BExp) -> String 
     show' (b1, b2) = "(" ++ show b1 ++ ", " ++ show b2 ++ ")"
 
+public export
 data Command = 
   Skip 
   | Assign (String, AExp) 
@@ -354,7 +374,14 @@ data Command =
   | ITE (BExp, Command, Command) 
   | While (BExp, Command)
 
-
+export
+Eq Command where
+  Skip == Skip = True
+  (Assign x) == (Assign y) = x == y
+  (Seq (a1, a2)) == (Seq (b1, b2)) = (a1 == b1 && a2 == b2)
+  (ITE (b, c1, c2)) == (ITE (b', c3, c4)) = (b == b' && c1 == c3 && c2 == c4)
+  (While (b1, c1)) == (While (b2, c2)) = (b1 == b2 && c1 == c2)
+  _ == _ = False
 
 export
 Show Command where
@@ -529,6 +556,6 @@ parseBool input = do
 export 
 parseCommand : String -> Either String Command
 parseCommand input = do 
-  lexedTokens <- lexer impToken input
+  lexedTokens <- lexer impToken (trim input)
   parser command lexedTokens
 

@@ -1,6 +1,5 @@
 module Token 
 
-
 public export
 data Cmp : Type -> Type -> Type where
   Leq : Cmp a b          
@@ -20,8 +19,6 @@ public export
 data TokenType : (t : Type -> Type) -> Type where
   TokType : {a : Type} -> t a -> TokenType t
 
-
-
 public export
 {t : Type -> Type} -> Tag t => Eq (TokenType t) where
   TokType x == TokType y = 
@@ -29,7 +26,6 @@ public export
       Leq => False
       Eql => True
       Geq => False
-
 
 public export
 {t : Type -> Type} -> Tag t => Eq (TokenType t) => Ord (TokenType t) where
@@ -41,8 +37,8 @@ public export
 
 public export
 {t : Type -> Type} -> Tag t => Show (Token t) where
-  show (Tok x y) = show x
+  show (Tok tag y) = show tag
 
 public export
 {t : Type -> Type} -> Tag t => Show (TokenType t) where
-  show (TokType tag) = show tag
+  show (TokType tagType) = show tagType

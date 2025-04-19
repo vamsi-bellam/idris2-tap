@@ -110,7 +110,7 @@ sexp2 =
 export 
 parseSexp : String -> Either String Sexp
 parseSexp input = do 
-  lexedTokens <- lexer sexpToken input
+  lexedTokens <- lexer sexpToken (trim input)
   parser sexp2 lexedTokens
 
 

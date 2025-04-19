@@ -328,5 +328,5 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
 export 
 parseJSON : String -> Either String JsonValue
 parseJSON input = do 
-  lexedTokens <- lexer jsonToken input
+  lexedTokens <- lexer jsonToken (trim input)
   parser value lexedTokens
