@@ -244,7 +244,9 @@ lte : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 lte = 
   MkGrammar 
     bot 
-    (Map (always (Tok ILTE ALte)) (MkGrammar bot (Seq (charSet "<") (charSet "="))))
+    (Map 
+      (always (Tok ILTE ALte)) 
+      (MkGrammar bot (Seq (charSet "<") (charSet "="))))
 
 export
 not : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
@@ -255,14 +257,18 @@ and : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 and = 
   MkGrammar 
     bot 
-    (Map (always (Tok IAnd BAnd)) (MkGrammar bot (Seq (charSet "&") (charSet "&"))))
+    (Map 
+      (always (Tok IAnd BAnd)) 
+      (MkGrammar bot (Seq (charSet "&") (charSet "&"))))
 
 export
 or : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 or = 
   MkGrammar 
     bot 
-    (Map (always (Tok IOr BOr)) (MkGrammar bot (Seq (charSet "|") (charSet "|"))))
+    (Map 
+      (always (Tok IOr BOr)) 
+      (MkGrammar bot (Seq (charSet "|") (charSet "|"))))
 
 
 export
@@ -270,7 +276,9 @@ assign : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
 assign = 
   MkGrammar 
     bot 
-    (Map (always (Tok IAssign ())) (MkGrammar bot (Seq (charSet ":") (charSet "="))))
+    (Map 
+      (always (Tok IAssign ())) 
+      (MkGrammar bot (Seq (charSet ":") (charSet "="))))
 
 export
 seq : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
@@ -392,7 +400,8 @@ Show Command where
     show' (c1, c2) = "(" ++ show c1 ++ ", " ++ show c2 ++ ")"
   show (ITE x) = "ITE " ++ show' x where 
     show' : (BExp, Command, Command) -> String 
-    show' (b, c1, c2) = "(" ++ show b ++ ", " ++ show c1 ++ ", " ++ show c2 ++ ")"
+    show' (b, c1, c2) = 
+      "(" ++ show b ++ ", " ++ show c1 ++ ", " ++ show c2 ++ ")"
   show (While x) = "While " ++ show' x where 
     show' : (BExp, Command) -> String 
     show' (b, c) = "(" ++ show b ++ ", " ++ show c ++ ")"
@@ -408,16 +417,23 @@ arith =
   MkGrammar 
     bot 
     (Map 
-      (\(x, xs) => foldl (\acc, (op , rem) => case op of 
-                                            APlus => Plus (acc, rem)
-                                            AMinus => Minus (acc, rem)
-                                            AMult => Mult (acc, rem)) x xs) 
+      (\(x, xs) => 
+        foldl (\acc, (op , rem) => 
+          case op of 
+                APlus => Plus (acc, rem)
+                AMinus => Minus (acc, rem)
+                AMult => Mult (acc, rem)) x xs) 
       (MkGrammar 
         bot 
-        (Seq toks (star (MkGrammar bot (Seq ((any [tok IPlus, tok IMinus, tok IMult])) toks))))))
+        (Seq 
+          toks 
+          (star (MkGrammar 
+                  bot 
+                  (Seq ((any [tok IPlus, tok IMinus, tok IMult])) toks))))))
 
 export
-paren : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a IToken -> Grammar ct a IToken
+paren : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a IToken -> 
+        Grammar ct a IToken
 paren p = 
   MkGrammar 
     bot 
@@ -429,7 +445,8 @@ paren p =
 bool :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct BExp IToken
 bool = MkGrammar bot (Fix {a = BExp} bool')
   where
-    bool' : {n : Nat} -> {ct' : Vect n Type} -> Grammar (BExp :: ct') BExp IToken
+    bool' : {n : Nat} -> {ct' : Vect n Type} -> 
+            Grammar (BExp :: ct') BExp IToken
     bool' = 
       let true = MkGrammar bot (Map (always VTrue) (tok ITrue)) 
           false = MkGrammar bot (Map (always VFalse) (tok IFalse)) 
@@ -443,7 +460,9 @@ bool = MkGrammar bot (Fix {a = BExp} bool')
                     bot 
                     (Seq 
                       (arith)
-                      (MkGrammar bot (Seq ((any [tok IEqual, tok ILTE])) arith)))))
+                      (MkGrammar 
+                        bot 
+                        (Seq ((any [tok IEqual, tok ILTE])) arith)))))
           te = any [paren (MkGrammar bot (Var Z)), true, false, eq]
           nt = MkGrammar 
                   bot 
@@ -453,21 +472,37 @@ bool = MkGrammar bot (Fix {a = BExp} bool')
           tes =   MkGrammar 
                     bot 
                     (Map 
-                      (\(x, xs) => foldl (\acc, (op , rem) => case op of 
-                                                            BAnd => And (acc, rem)
-                                                            BOr => Or (acc, rem)) x xs) 
+                      (\(x, xs) => 
+                          foldl (\acc, (op , rem) => 
+                            case op of 
+                                  BAnd => And (acc, rem)
+                                  BOr => Or (acc, rem)) x xs) 
                       (MkGrammar 
                         bot 
-                        (Seq (te) (star (MkGrammar bot (Seq ((any [tok IAnd, tok IOr])) (any [te, nt])))))))
+                        (Seq 
+                          (te) 
+                          (star (MkGrammar 
+                                  bot 
+                                  (Seq 
+                                    (any [tok IAnd, tok IOr])
+                                    (any [te, nt])))))))
           ntes =   MkGrammar 
                     bot 
                     (Map 
-                      (\(x, xs) => foldl (\acc, (op , rem) => case op of 
-                                                            BAnd => And (acc, rem)
-                                                            BOr => Or (acc, rem)) x xs) 
+                      (\(x, xs) => 
+                          foldl (\acc, (op , rem) =>
+                            case op of 
+                                  BAnd => And (acc, rem)
+                                  BOr => Or (acc, rem)) x xs) 
                       (MkGrammar 
                         bot 
-                        (Seq (nt) (star (MkGrammar bot (Seq ((any [tok IAnd, tok IOr])) (any [te, nt])))))))
+                        (Seq 
+                          (nt) 
+                          (star (MkGrammar 
+                                  bot 
+                                  (Seq 
+                                    (any [tok IAnd, tok IOr])
+                                    (any [te, nt])))))))
       in
       any [tes, ntes]
 
@@ -476,16 +511,21 @@ command : Grammar Nil Command IToken
 command = MkGrammar bot (Fix {a = Command} command')
   where
     command' : Grammar [Command] Command IToken
-    command' = 
-                       (MkGrammar bot
-                         (Map 
-                           (\(b, ms) => case ms of
-                                           Nothing => b
-                                           Just (_, c) => Seq (b, c))
-                           (MkGrammar bot
-                             (Seq 
-                               (any [baseCommand , paren baseCommand])
-                               (maybe (MkGrammar bot (Seq (tok ISeq) (MkGrammar bot (Var (Z))))))))))
+    command' = MkGrammar 
+                  bot
+                  (Map 
+                    (\(b, ms) => case ms of
+                                    Nothing => b
+                                    Just (_, c) => Seq (b, c))
+                    (MkGrammar 
+                      bot
+                      (Seq 
+                        (any [baseCommand , paren baseCommand])
+                        (maybe (MkGrammar 
+                                  bot 
+                                  (Seq 
+                                    (tok ISeq) 
+                                    (MkGrammar bot (Var (Z)))))))))
     where
      baseCommand : Grammar [Command] Command IToken
      baseCommand = 
@@ -522,7 +562,13 @@ command = MkGrammar bot (Fix {a = Command} command')
                                   (MkGrammar bot (Var Z)) 
                                   (MkGrammar 
                                     bot 
-                                    (Seq (tok IElse) (MkGrammar bot (Seq (MkGrammar bot (Var (Z))) (tok IDone))))))))))))))
+                                    (Seq 
+                                      (tok IElse) 
+                                      (MkGrammar 
+                                        bot 
+                                        (Seq 
+                                          (MkGrammar bot (Var (Z))) 
+                                          (tok IDone))))))))))))))
           whiledo = MkGrammar 
               bot 
               (Map 
@@ -537,7 +583,13 @@ command = MkGrammar bot (Fix {a = Command} command')
                         bool 
                         (MkGrammar 
                           bot 
-                          (Seq (tok IDo) (MkGrammar bot (Seq (MkGrammar bot (Var (Z))) (tok IDone))))))))))
+                          (Seq 
+                            (tok IDo) 
+                            (MkGrammar 
+                              bot 
+                              (Seq 
+                                (MkGrammar bot (Var (Z))) 
+                                (tok IDone))))))))))
       in any [skip, assign, whiledo, ifelse]
 
 
@@ -558,4 +610,3 @@ parseCommand : String -> Either String Command
 parseCommand input = do 
   lexedTokens <- lexer impToken (trim input)
   parser command lexedTokens
-

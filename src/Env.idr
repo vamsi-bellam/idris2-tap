@@ -10,4 +10,4 @@ data Var : (a : Type) -> (ctx : Vect n Type) -> Type where
 public export
 Show (Var a ctx) where 
   show Z = "Z"
-  show (S x) = "S \{show x}"
+  show (S x) = "S " ++ show x

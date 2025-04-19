@@ -91,7 +91,8 @@ disjoint t1 t2 =
 
 
 export 
-alt : Show tok => Ord tok => LangType tok -> LangType tok -> Either String (LangType tok)
+alt : Show tok => Ord tok => LangType tok -> LangType tok -> 
+      Either String (LangType tok)
 alt t1 t2 = 
   if disjoint t1 t2 then 
     Right(
@@ -120,7 +121,8 @@ min =
     }
 
 export
-fix : Ord tok => (Either String (LangType tok) -> Either String (LangType tok)) -> Either String (LangType tok) 
+fix : Ord tok => (Either String (LangType tok) -> Either String (LangType tok)) 
+      -> Either String (LangType tok) 
 fix f = fixHelper $ Right min
 
   where

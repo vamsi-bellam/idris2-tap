@@ -10,14 +10,15 @@ import Token
 export
 tok : {ct : Vect n Type} -> {tagType : Type -> Type} -> Tag tagType => 
       (tagType a)  -> Grammar ct a tagType
-tok tag = MkGrammar bot (Chr tag)
+tok tag = MkGrammar bot (Tok tag)
 
 export
 always : a -> b -> a
 always x = \_ => x
 
 export
-maybe : {a : Type} -> {tok : Type -> Type} -> Tag tok => {ct : Vect n Type} -> Grammar ct a tok -> Grammar ct (Maybe a) tok
+maybe : {a : Type} -> {tok : Type -> Type} -> Tag tok => {ct : Vect n Type} -> 
+        Grammar ct a tok -> Grammar ct (Maybe a) tok
 maybe p = any [
   MkGrammar bot (Map (\x => Just x) p),
   MkGrammar bot (Eps Nothing)
@@ -43,14 +44,14 @@ Tag CharTag where
 
 public export
 toTokens : String -> (List (Token CharTag))
-toTokens str = toTokens' (unpack str) where 
+toTokens input = toTokens' (unpack input) where 
   toTokens' : List Char -> (List (Token CharTag))
   toTokens' [] = []
   toTokens' (x :: xs) = Tok (CT x) x :: (toTokens' xs)
   
 
 char : {ct : Vect n Type} -> Char -> Grammar ct Char CharTag
-char c = MkGrammar bot (Map (\_ => c) (MkGrammar bot (Chr (CT c))))
+char c = MkGrammar bot (Map (\_ => c) (tok (CT c)))
 
 export
 charSet : {ct : Vect n Type} -> String -> Grammar ct Char CharTag
@@ -74,7 +75,6 @@ export
 digit : {ct : Vect n Type} -> Grammar ct Char CharTag
 digit = charSet "0123456789"
 
-
 export
 lower : {ct : Vect n Type} -> Grammar ct Char CharTag
 lower = charSet "abcdefghijklmnopqrstuvwxyz"
@@ -96,30 +96,16 @@ whitespace = charSet " \t\n\r"
 
 
 export
-skipSpace : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a CharTag -> Grammar ct a CharTag
+skipSpace : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> 
+            Grammar ct a CharTag -> Grammar ct a CharTag
 skipSpace g = 
   MkGrammar 
     bot 
     (Map (\x => snd x) (MkGrammar bot (Seq whitespace g)))
 
-
-export
-skipEndWS : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a CharTag -> Grammar ct a CharTag
-skipEndWS g = 
-  MkGrammar 
-    bot 
-    (Map (\(x, _) => x) (MkGrammar bot (Seq g (star whitespace))))
-
-export
-haveEndWs : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a CharTag -> Grammar ct a CharTag
-haveEndWs g = 
-  MkGrammar 
-    bot 
-    (Map (\(x, _) => x) (MkGrammar bot (Seq g (plus whitespace))))
-
 export 
 lexer : {a : Type} -> Grammar Nil a CharTag -> String -> Either String (List a)
-lexer gram str = 
+lexer gram input = 
   let lexer' : List (Token CharTag) -> List a -> Either String (List a)
       lexer' tokens acc = do 
         parser <- generateParser gram
@@ -127,11 +113,11 @@ lexer gram str =
         case (snd res) of 
               [] => Right(acc ++ [fst res])
               (rest) => lexer' (rest) (acc ++ [fst res])
-  in lexer' (toTokens str) [] 
+  in lexer' (toTokens input) [] 
 
 export 
-parser : {b : Type} -> {t : Type -> Type} -> Tag t => Grammar Nil b t -> 
-          (List (Token t)) -> Either String b
+parser : {a : Type} -> {t : Type -> Type} -> Tag t => Grammar Nil a t -> 
+          (List (Token t)) -> Either String a
 parser gram tokens = do
   parser <- generateParser gram
   res <- parser tokens

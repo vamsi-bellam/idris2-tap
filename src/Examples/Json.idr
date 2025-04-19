@@ -39,38 +39,49 @@ toInt TComma = 10
 -- < TLBracket < TRBracket < TColon < TComma
 Tag JsonToken where
   compare TNull TNull = Eql
-  compare TTrue TTrue = Eql
-  compare TFalse TFalse = Eql
-  compare TDecimal TDecimal = Eql
-  compare TString TString = Eql
-  compare TLBrace TLBrace = Eql
-  compare TRBrace TRBrace = Eql
-  compare TLBracket TLBracket = Eql
-  compare TRBracket TRBracket = Eql
-  compare TColon TColon = Eql
-  compare TComma TComma = Eql
   compare TNull _ = Leq
   compare _ TNull = Geq
-  compare TTrue _ = Leq 
+
+  compare TTrue TTrue = Eql
+  compare TTrue _ = Leq
   compare _ TTrue = Geq
-  compare TFalse _ = Leq 
+
+  compare TFalse TFalse = Eql
+  compare TFalse _ = Leq
   compare _ TFalse = Geq
-  compare TDecimal _ = Leq 
+
+  compare TDecimal TDecimal = Eql
+  compare TDecimal _ = Leq
   compare _ TDecimal = Geq
-  compare TString _ = Leq 
+
+  compare TString TString = Eql
+  compare TString _ = Leq
   compare _ TString = Geq
-  compare TLBrace _ = Leq 
+
+  compare TLBrace TLBrace = Eql
+  compare TLBrace _ = Leq
   compare _ TLBrace = Geq
-  compare TRBrace _ = Leq 
+
+  compare TRBrace TRBrace = Eql
+  compare TRBrace _ = Leq
   compare _ TRBrace = Geq
-  compare TLBracket _ = Leq 
+
+  compare TLBracket TLBracket = Eql
+  compare TLBracket _ = Leq
   compare _ TLBracket = Geq
-  compare TRBracket _ = Leq 
+
+  compare TRBracket TRBracket = Eql
+  compare TRBracket _ = Leq
   compare _ TRBracket = Geq
-  compare TColon _ = Leq 
+
+  compare TColon TColon = Eql
+  compare TColon _ = Leq
   compare _ TColon = Geq
-  compare TComma _ = Leq 
+
+  compare TComma TComma = Eql
+  compare TComma _ = Leq
   compare _ TComma = Geq
+
 
   show TNull = "TNull"
   show TTrue = "TTrue"
@@ -86,34 +97,34 @@ Tag JsonToken where
 
 export
 lbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-lbracket = MkGrammar bot (Map (\_ => (Tok TLBracket ())) (charSet "["))
+lbracket = MkGrammar bot (Map (always (Tok TLBracket ())) (charSet "["))
 
 export
 rbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-rbracket = MkGrammar bot (Map (\_ => (Tok TRBracket ())) (charSet "]"))
+rbracket = MkGrammar bot (Map (always (Tok TRBracket ())) (charSet "]"))
 
 export
 lbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-lbrace = MkGrammar bot (Map (\_ => (Tok TLBrace ())) (charSet "{"))
+lbrace = MkGrammar bot (Map (always (Tok TLBrace ())) (charSet "{"))
 
 export
 rbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-rbrace = MkGrammar bot (Map (\_ => (Tok TRBrace ())) (charSet "}"))
+rbrace = MkGrammar bot (Map (always (Tok TRBrace ())) (charSet "}"))
 
 export
 comma : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-comma =  MkGrammar bot (Map (\_ => (Tok TComma ())) (charSet ","))
+comma =  MkGrammar bot (Map (always (Tok TComma ())) (charSet ","))
 
 export
 colon : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-colon =  MkGrammar bot (Map (\_ => (Tok TColon ())) (charSet ":"))
+colon =  MkGrammar bot (Map (always (Tok TColon ())) (charSet ":"))
 
 
 export
 nullp : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 nullp = 
   MkGrammar bot 
-  (Map (\_ => Tok TNull ()) 
+  (Map (always (Tok TNull ())) 
     (MkGrammar bot 
       (Seq 
         (charSet "n") 
@@ -125,7 +136,7 @@ export
 truep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 truep = 
   MkGrammar bot 
-  (Map (\_ => Tok TTrue True) 
+  (Map (always (Tok TTrue True)) 
     (MkGrammar bot 
       (Seq 
         (charSet "t") 
@@ -137,7 +148,7 @@ export
 falsep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 falsep = 
   MkGrammar bot 
-  (Map (\_ => Tok TFalse False) 
+  (Map (always (Tok TFalse False)) 
     (MkGrammar bot 
       (Seq 
         (charSet "f") 
@@ -148,7 +159,8 @@ falsep =
                 (MkGrammar bot (Seq (charSet "s") (charSet "e"))))))))))
 
 export
-fullstringp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
+fullstringp : {n : Nat} -> {ct : Vect n Type} -> 
+              Grammar ct (Token JsonToken) CharTag
 fullstringp = 
   MkGrammar bot
   (Map (\((_, s), _) => Tok TString (pack s)) 
@@ -158,7 +170,8 @@ fullstringp =
       (charSet "\"") )))
 
 export
-decimal : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
+decimal : {n : Nat} -> {ct : Vect n Type} -> 
+          Grammar ct (Token JsonToken) CharTag
 decimal = 
   MkGrammar 
     bot
@@ -263,12 +276,13 @@ between left p right =
       (MkGrammar bot (Seq (MkGrammar bot (Seq left p)) right)))
 
 export
-sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a JsonToken -> 
-        Grammar ct (List a) JsonToken
+sepByComma : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> 
+              Grammar ct a JsonToken -> Grammar ct (List a) JsonToken
 sepByComma g = 
   MkGrammar bot (Fix {a = List a} (sepByComma' g))
   where
-    sepByComma' : Grammar ct a JsonToken -> Grammar (List a :: ct) (List a) JsonToken
+    sepByComma' : Grammar ct a JsonToken -> 
+                  Grammar (List a :: ct) (List a) JsonToken
     sepByComma' g = 
       MkGrammar 
         bot 
@@ -289,8 +303,8 @@ sepByComma g =
 
 
                           
-member : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a JsonToken -> 
-        Grammar ct (String, a) JsonToken
+member : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a JsonToken 
+          -> Grammar ct (String, a) JsonToken
 member x = 
   MkGrammar 
     bot 
@@ -316,12 +330,15 @@ value = MkGrammar bot (Fix {a = JsonValue} value')
             MkGrammar 
               bot 
               (Map (\rest => JArray rest) 
-                (between (tok TLBracket) (sepByComma (MkGrammar bot (Var Z))) (tok TRBracket)))
+                (between 
+                  (tok TLBracket) 
+                  (sepByComma (MkGrammar bot (Var Z))) 
+                  (tok TRBracket)))
           decimal = MkGrammar bot (Map (\ db => JDecimal db ) (tok TDecimal))
           string = MkGrammar bot (Map (\s => JString s ) (tok TString) )
-          null = MkGrammar bot (Map (\_ => JNull ) (tok TNull))
-          true = MkGrammar bot (Map (\_ => JBool True) (tok TTrue))
-          false = MkGrammar bot (Map (\_ => JBool False ) (tok TFalse)) in 
+          null = MkGrammar bot (Map (always JNull) (tok TNull))
+          true = MkGrammar bot (Map (always (JBool True)) (tok TTrue))
+          false = MkGrammar bot (Map (always (JBool False)) (tok TFalse)) in 
       any [object, array, decimal, string, null, true, false]
 
 

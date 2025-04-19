@@ -27,7 +27,7 @@ eps : HT ()
 eps _ = MkGrammar bot (Eps ())
 
 char : Char -> HT Char
-char c _ = MkGrammar bot (Chr c)
+char c _ = MkGrammar bot (Tok c)
 
 seq : HT a -> HT b -> HT (a, b)
 seq f g ctx = MkGrammar bot (Seq (f ctx) (g ctx))

@@ -17,15 +17,16 @@ data SToken : Type -> Type where
 
 Tag SToken where
   compare Symbol Symbol = Eql
-  compare LParen LParen = Eql
-  compare RParen RParen = Eql
-  compare Symbol LParen = Leq
-  compare Symbol RParen = Leq
-  compare LParen Symbol = Geq
-  compare LParen RParen = Leq
-  compare RParen Symbol = Geq
-  compare RParen LParen = Geq
+  compare Symbol _ = Leq
+  compare _ Symbol = Geq
 
+  compare LParen LParen = Eql
+  compare LParen _ = Leq
+  compare _ LParen = Geq
+
+  compare RParen RParen = Eql
+  compare RParen _ = Leq
+  compare _ RParen = Geq
 
   show Symbol = "Symbol"
   show LParen = "LParen"
@@ -81,7 +82,8 @@ Eq Sexp where
 
 
 export
-paren : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a SToken -> Grammar ct a SToken
+paren : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a SToken 
+        -> Grammar ct a SToken
 paren p = 
   MkGrammar 
     bot 
@@ -95,23 +97,27 @@ paren p =
 
 
 export
-sexp2 : Grammar Nil Sexp SToken
-sexp2 = 
-  MkGrammar bot (Fix {a = Sexp} sexp2')
+sexpression : Grammar Nil Sexp SToken
+sexpression = 
+  MkGrammar bot (Fix {a = Sexp} sexpression')
   where
-    sexp2' : Grammar [Sexp] Sexp SToken
-    sexp2' = 
+    sexpression' : Grammar [Sexp] Sexp SToken
+    sexpression' = 
       MkGrammar 
         bot 
         (Alt 
           (MkGrammar bot (Map (\arg => Sym arg) (wekeanGrammar (tok Symbol)))) 
-          (MkGrammar bot (Map (\arg2 => Sequence arg2) (paren (star (MkGrammar bot (Var Z)))))))
+          (MkGrammar 
+            bot 
+            (Map 
+              (\arg2 => Sequence arg2) 
+              (paren (star (MkGrammar bot (Var Z)))))))
 
 export 
 parseSexp : String -> Either String Sexp
 parseSexp input = do 
   lexedTokens <- lexer sexpToken (trim input)
-  parser sexp2 lexedTokens
+  parser sexpression lexedTokens
 
 
 
