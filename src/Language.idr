@@ -3,20 +3,20 @@ module Language
 import Data.SortedSet
 
 public export
-record LangType (tok : Type) where 
+record LangType (token : Type) where 
   constructor MkLangType
   null : Bool
-  first : SortedSet tok
-  follow : SortedSet tok
+  first : SortedSet token
+  follow : SortedSet token
   guarded : Bool
 
 export
-Eq tok => Eq (LangType tok) where 
+Eq token => Eq (LangType token) where 
   t1 == t2 = 
     t1.null == t2.null && t1.first == t2.first && t1.follow == t2.follow
 
 export
-Show tok => Show (LangType tok) where 
+Show token => Show (LangType token) where 
   show (MkLangType null first follow guarded) = 
     """
     { null : \{show null}
@@ -27,7 +27,7 @@ Show tok => Show (LangType tok) where
     """
 
 export
-tok : {auto _ : Ord tok} -> tok -> LangType tok
+tok : {auto _ : Ord token} -> token -> LangType token
 tok c = 
   MkLangType
     { null  = False
@@ -37,7 +37,7 @@ tok c =
     }
 
 export
-eps : {auto _ : Ord tok} -> LangType tok
+eps : {auto _ : Ord token} -> LangType token
 eps =
   MkLangType
     { null  = True
@@ -47,7 +47,7 @@ eps =
     }
 
 export 
-bot : {auto _ : Ord tok} -> LangType tok
+bot : {auto _ : Ord token} -> LangType token
 bot = 
   MkLangType
     { null  = False
@@ -57,11 +57,11 @@ bot =
     }
 
 export
-seq : {auto _ : Show tok} 
-   -> {auto _ : Ord tok} 
-   -> LangType tok 
-   -> LangType tok 
-   -> Either String (LangType tok)
+seq : {auto _ : Show token} 
+   -> {auto _ : Ord token} 
+   -> LangType token 
+   -> LangType token 
+   -> Either String (LangType token)
 seq t1 t2 = 
   if apart t1 t2 then 
     Right(
@@ -83,15 +83,15 @@ seq t1 t2 =
             """)
   
   where 
-    apart : LangType tok -> LangType tok -> Bool
+    apart : LangType token -> LangType token -> Bool
     apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
 export 
-alt : {auto _ : Show tok} 
-   -> {auto _ : Ord tok} 
-   -> LangType tok 
-   -> LangType tok 
-   -> Either String (LangType tok)
+alt : {auto _ : Show token} 
+   -> {auto _ : Ord token} 
+   -> LangType token 
+   -> LangType token 
+   -> Either String (LangType token)
 alt t1 t2 = 
   if disjoint t1 t2 then 
     Right(
@@ -110,23 +110,23 @@ alt t1 t2 =
               are not disjoint!
           """)
   where 
-    disjoint : LangType tok -> LangType tok -> Bool
+    disjoint : LangType token -> LangType token -> Bool
     disjoint t1 t2 = 
       not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
 export
-fix : {auto _ : Ord tok} 
-   -> (f : Either String (LangType tok) -> Either String (LangType tok)) 
-   -> Either String (LangType tok) 
+fix : {auto _ : Ord token} 
+   -> (f : Either String (LangType token) -> Either String (LangType token)) 
+   -> Either String (LangType token) 
 fix f = fixHelper $ Right min
 
   where
-    fixHelper : Either String (LangType tok) -> Either String (LangType tok) 
+    fixHelper : Either String (LangType token) -> Either String (LangType token) 
     fixHelper t = 
       let t' = f t in 
       if t' == t then t else fixHelper t'
 
-    min : LangType tok
+    min : LangType token
     min = 
       MkLangType
         { null  = False
