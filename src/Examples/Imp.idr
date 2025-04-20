@@ -359,14 +359,13 @@ export
 Show BExp where 
   show VTrue = "VTrue"
   show VFalse = "VFalse"
-  show (Eq x) = "Eq" ++ show x
-  show (LTE x) = "LTE " ++ show x
-  show (Not x) = "Not " ++ show x
+  show (Eq x) = "Eq" ++ showParens True (show x)
+  show (LTE x) = "LTE " ++ showParens True (show x)
+  show (Not x) = "Not " ++ showParens True (show x)
   show (And x) = "And " ++ show' x where 
     show' : (BExp, BExp) -> String 
     show' (b1, b2) = "(" ++ show b1 ++ ", " ++ show b2 ++ ")"
   show (Or x) = "Or " ++ show' x where 
-    -- TODO : Repeated , Refactor
     show' : (BExp, BExp) -> String 
     show' (b1, b2) = "(" ++ show b1 ++ ", " ++ show b2 ++ ")"
 
@@ -413,9 +412,29 @@ paren p =
     (Map 
       (\((_, a), _) => a) 
       (MkGrammar bot (Seq (MkGrammar bot (Seq (tok ILparen) p)) (tok IRParen))))
-      
+
+-- arith :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct AExp IToken
+-- arith = 
+--   let int = MkGrammar bot (Map (\v => VInt v) (tok IInt)) 
+--       id = MkGrammar bot (Map (\i => Loc i) (tok ILoc))
+--       toks = any [int, id]
+--   in
+--   MkGrammar 
+--     bot 
+--     (Map 
+--       (\(x, xs) => foldl (\acc, (op , rem) => case op of 
+--                                             APlus => Plus (acc, rem)
+--                                             AMinus => Minus (acc, rem)
+--                                             AMult => Mult (acc, rem)) x xs) 
+--       (MkGrammar 
+--         bot 
+--         (Seq toks (star (MkGrammar bot (Seq ((any [tok IPlus, tok IMinus, tok IMult])) toks))))))     
+
 arith :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct AExp IToken
-arith =  
+arith =  MkGrammar bot (Fix {a = AExp} arith') where 
+  arith' : {n : Nat} -> {ct' : Vect n Type} -> 
+            Grammar (AExp :: ct') AExp IToken
+  arith' = 
     let int = MkGrammar bot (Map (\v => VInt v) (tok IInt)) 
         id = MkGrammar bot (Map (\i => Loc i) (tok ILoc))
         toks = any [int, id]
@@ -427,7 +446,9 @@ arith =
                         Nothing => x 
                         Just (APlus, z) => Plus (x, z)
                         Just (AMinus, z) => Minus (x, z)
-                        Just (AMult, z) => Mult (x, z)) 
+                        Just (AMult, Plus(a1, a2)) => Plus ((Mult (x, a1), a2))
+                        Just (AMult, Minus(a1, a2)) => Minus (Mult (x, a1), a2)
+                        Just (AMult, z) => Mult (x, z) ) 
           (MkGrammar 
             bot 
             (Seq 
@@ -436,7 +457,7 @@ arith =
                         bot 
                         (Seq 
                           (any [tok IPlus, tok IMinus, tok IMult]) 
-                          (toks)))))))
+                          (MkGrammar bot (Var Z))))))))
 
 
 bool :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct BExp IToken

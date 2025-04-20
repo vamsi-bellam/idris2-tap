@@ -4,6 +4,36 @@ import Examples.Imp
 
 import Test.Utils
 
+
+i1 : Test
+i1 = 
+  MkTest 
+    "Imp Language - Arith Expression" 
+    (assertEq 
+      (parseCommand "x := 1 + 2 * 3 - 4 * 5 + 6") 
+      (Right (Assign 
+                ("x", 
+                Plus 
+                  (VInt 1, 
+                  Minus (
+                    Mult (VInt 2, VInt 3), 
+                    Plus (
+                      Mult (VInt 4, VInt 5), 
+                      VInt 6)))))))
+
+i2 : Test
+i2 = 
+  MkTest 
+    "Imp Language - Bool Expression" 
+    (assertEq 
+      (parseCommand "while (!true && !false || (!(true || false))) do skip done") 
+      (Right (While 
+                (Or (
+                    And (Not (VTrue), Not (VFalse)), 
+                    Not (Or (VTrue, VFalse))
+                    ), 
+                  Skip))))
+
 sampleImpProgram : String 
 sampleImpProgram = 
   """
@@ -19,8 +49,8 @@ sampleImpProgram =
     done
   """
 
-i1 : Test
-i1 = 
+i3 : Test
+i3 = 
   MkTest 
     "Imp Language - Example" 
     (assertEq 
@@ -39,6 +69,8 @@ tests : List Test
 tests = 
   [
     i1
+  , i2
+  , i3
   ]
 
 export 
