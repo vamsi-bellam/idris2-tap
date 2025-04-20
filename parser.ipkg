@@ -16,7 +16,7 @@ authors = "vamsi bellam"
 -- depends =
 
 -- modules to install
--- modules =
+modules = Grammar, Parser, Token
 
 -- main file (i.e. file to load at REPL)
 main = Main

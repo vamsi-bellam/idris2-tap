@@ -114,15 +114,6 @@ alt t1 t2 =
     disjoint t1 t2 = 
       not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
-min : {auto _ : Ord tok} -> LangType tok
-min = 
-  MkLangType
-    { null  = False
-    , first = empty
-    , follow = empty 
-    , guarded = False
-    }
-
 export
 fix : {auto _ : Ord tok} 
    -> (f : Either String (LangType tok) -> Either String (LangType tok)) 
@@ -134,3 +125,12 @@ fix f = fixHelper $ Right min
     fixHelper t = 
       let t' = f t in 
       if t' == t then t else fixHelper t'
+
+    min : LangType tok
+    min = 
+      MkLangType
+        { null  = False
+        , first = empty
+        , follow = empty 
+        , guarded = False
+        }
