@@ -80,20 +80,6 @@ Eq Sexp where
       listSexpEq _ _ = False
   _ == _ = False
 
-
-paren : {a : Type} -> {n : Nat} -> {ct : Vect n Type} -> Grammar ct a SToken 
-        -> Grammar ct a SToken
-paren p = 
-  MkGrammar 
-    bot 
-    (Map 
-      (\((_, a), _) => a) 
-      (MkGrammar
-        bot 
-        (Seq 
-          (MkGrammar bot (Seq (tok LParen) p)) 
-          (tok RParen))))
-
 sexpression : Grammar Nil Sexp SToken
 sexpression = 
   MkGrammar bot (Fix {a = Sexp} sexpression')
@@ -108,7 +94,7 @@ sexpression =
             bot 
             (Map 
               (\arg2 => Sequence arg2) 
-              (paren (star (MkGrammar bot (Var Z)))))))
+              (between (tok LParen) (star (MkGrammar bot (Var Z))) (tok RParen)))))
 
 export 
 parseSexp : String -> Either String Sexp

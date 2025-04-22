@@ -7,38 +7,41 @@ data Cmp : Type -> Type -> Type where
   Geq : Cmp a b        
 
 public export
-interface Tag (t : Type -> Type) where
-  compare : t a -> t b -> Cmp a b
-  show   : t a -> String   
+interface Tag (tagType : Type -> Type) where
+  compare : tagType a -> tagType b -> Cmp a b
+  show   : tagType a -> String   
 
 public export
-data Token : (Type -> Type) -> Type where
-  Tok : {a : Type} -> t a -> a -> Token t
+data Token : (tagType : Type -> Type) -> Type where
+  Tok : {a : Type} -> (tag : tagType a) -> a -> Token tagType
 
 public export
-data TokenType : (t : Type -> Type) -> Type where
-  TokType : {a : Type} -> t a -> TokenType t
+data TokenType : (tagType : Type -> Type) -> Type where
+  TokType : {a : Type} -> (tag : tagType a) -> TokenType tagType
 
 public export
-{t : Type -> Type} -> Tag t => Eq (TokenType t) where
-  TokType x == TokType y = 
-    case (compare x y) of 
+{tagType : Type -> Type} -> Tag tagType => Eq (TokenType tagType) where
+  TokType tag1 == TokType tag2 = 
+    case (compare tag1 tag2) of 
       Leq => False
       Eql => True
       Geq => False
 
 public export
-{t : Type -> Type} -> Tag t => Eq (TokenType t) => Ord (TokenType t) where
-  compare (TokType x) (TokType z) = 
-    case compare x z of 
+{tagType : Type -> Type} 
+-> Tag tagType 
+=> Eq (TokenType tagType) 
+=> Ord (TokenType tagType) where
+  compare (TokType tag1) (TokType tag2) = 
+    case compare tag1 tag2 of 
       Leq => LT
       Eql => EQ
       Geq => GT
 
 public export
-{t : Type -> Type} -> Tag t => Show (Token t) where
+{tagType : Type -> Type} -> Tag tagType => Show (Token tagType) where
   show (Tok tag y) = show tag
 
 public export
-{t : Type -> Type} -> Tag t => Show (TokenType t) where
-  show (TokType tagType) = show tagType
+{tagType : Type -> Type} -> Tag tagType => Show (TokenType tagType) where
+  show (TokType tag) = show tag

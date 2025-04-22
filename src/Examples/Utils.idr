@@ -115,7 +115,6 @@ export
 whitespace : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Char CharTag
 whitespace = charSet " \t\n\r"
 
-
 export
 skipSpace : {a : Type} 
          -> {n : Nat} 

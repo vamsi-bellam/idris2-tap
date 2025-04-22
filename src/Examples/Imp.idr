@@ -406,34 +406,13 @@ paren : {a : Type}
      -> {ct : Vect n Type} 
      -> Grammar ct a IToken 
      -> Grammar ct a IToken
-paren p = 
-  MkGrammar 
-    bot 
-    (Map 
-      (\((_, a), _) => a) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq (tok ILparen) p)) (tok IRParen))))
-
--- arith :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct AExp IToken
--- arith = 
---   let int = MkGrammar bot (Map (\v => VInt v) (tok IInt)) 
---       id = MkGrammar bot (Map (\i => Loc i) (tok ILoc))
---       toks = any [int, id]
---   in
---   MkGrammar 
---     bot 
---     (Map 
---       (\(x, xs) => foldl (\acc, (op , rem) => case op of 
---                                             APlus => Plus (acc, rem)
---                                             AMinus => Minus (acc, rem)
---                                             AMult => Mult (acc, rem)) x xs) 
---       (MkGrammar 
---         bot 
---         (Seq toks (star (MkGrammar bot (Seq ((any [tok IPlus, tok IMinus, tok IMult])) toks))))))     
-
+paren p = between (tok ILparen) p (tok IRParen)
+   
 arith :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct AExp IToken
 arith =  MkGrammar bot (Fix {a = AExp} arith') where 
-  arith' : {n : Nat} -> {ct' : Vect n Type} -> 
-            Grammar (AExp :: ct') AExp IToken
+  arith' : {n : Nat} 
+        -> {ct' : Vect n Type} 
+        -> Grammar (AExp :: ct') AExp IToken
   arith' = 
     let int = MkGrammar bot (Map (\v => VInt v) (tok IInt)) 
         id = MkGrammar bot (Map (\i => Loc i) (tok ILoc))
@@ -463,8 +442,9 @@ arith =  MkGrammar bot (Fix {a = AExp} arith') where
 bool :  {n : Nat} -> {ct : Vect n Type} -> Grammar ct BExp IToken
 bool = MkGrammar bot (Fix {a = BExp} bool')
   where
-    bool' : {n : Nat} -> {ct' : Vect n Type} -> 
-            Grammar (BExp :: ct') BExp IToken
+    bool' : {n : Nat} 
+         -> {ct' : Vect n Type} 
+         -> Grammar (BExp :: ct') BExp IToken
     bool' = 
       let true = MkGrammar bot (Map (always VTrue) (tok ITrue)) 
           false = MkGrammar bot (Map (always VFalse) (tok IFalse)) 
