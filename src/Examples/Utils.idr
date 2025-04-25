@@ -88,6 +88,36 @@ var : {a : Type}
 var x = MkGrammar bot (Var x)
 
 -- End of Reduced API
+export
+star : {a : Type} 
+    -> {n : Nat} 
+    -> {ct : Vect n Type} 
+    -> {tagType : Type -> Type} 
+    -> {auto _ : Tag tagType} 
+    -> Grammar ct a tagType 
+    -> Grammar ct (List a) tagType
+star g = fix (star' g)
+  where
+    star' : Grammar ct a tagType -> Grammar (List a :: ct) (List a) tagType
+    star' g = eps [] <|> (wekeanGrammar g >>> var Z $$ (\(x, xs) => x :: xs))
+
+export
+plus : {a : Type} 
+    -> {n : Nat} 
+    -> {ct : Vect n Type} 
+    -> {tagType : Type -> Type} 
+    -> {auto _ : Tag tagType} 
+    -> Grammar ct a tagType 
+    -> Grammar ct (List a) tagType
+plus g = (g >>> star g) $$ (\(x, xs) => x :: xs)
+
+export
+any : {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> List (Grammar ct a tagType) 
+   -> Grammar ct a tagType
+any gs = foldl (<|>) bot gs
 
 export
 always : a -> b -> a

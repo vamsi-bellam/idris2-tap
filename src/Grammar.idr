@@ -234,48 +234,6 @@ wekeanGrammar = mapGrammar f prf
     prf i = Refl
 
 export
-star : {a : Type} 
-    -> {n : Nat} 
-    -> {ct : Vect n Type} 
-    -> {tagType : Type -> Type} 
-    -> {auto _ : Tag tagType} 
-    -> Grammar ct a tagType 
-    -> Grammar ct (List a) tagType
-star g = 
-  MkGrammar bot (Fix {a = List a} (star' g))
-  where
-    star' : Grammar ct a tagType -> Grammar (List a :: ct) (List a) tagType
-    star' g = 
-      MkGrammar bot (Alt 
-                      (MkGrammar bot (Eps []))
-                      (MkGrammar bot 
-                        (Map
-                          (MkGrammar bot 
-                            (Seq 
-                              (wekeanGrammar g)
-                              (MkGrammar bot (Var Z))
-                            )) (\(x, xs) => x :: xs) )))
-
-export
-plus : {a : Type} 
-    -> {n : Nat} 
-    -> {ct : Vect n Type} 
-    -> {tagType : Type -> Type} 
-    -> {auto _ : Tag tagType} 
-    -> Grammar ct a tagType 
-    -> Grammar ct (List a) tagType
-plus g = 
-  MkGrammar bot (Map (MkGrammar bot (Seq g (star g))) (\(x, xs) => x :: xs))
-
-export
-any : {ct : Vect n Type} 
-   -> {tagType : Type -> Type} 
-   -> {auto _ : Tag tagType} 
-   -> List (Grammar ct a tagType) 
-   -> Grammar ct a tagType
-any lg = foldl (\g1, g2 => MkGrammar bot (Alt g1 g2)) (MkGrammar bot Bot) lg
-
-export
 bot : {tagType : Type -> Type} 
    -> {auto _ : Tag tagType} 
    -> LangType (TokenType tagType)
