@@ -268,8 +268,8 @@ json = fix json'
                 (tok TLBracket) 
                 (sepByComma (var Z)) 
                 (tok TRBracket))
-          decimal = map (\ db => JDecimal db ) (tok TDecimal)
-          string = map (\s => JString s ) (tok TString) 
+          decimal = map JDecimal (tok TDecimal)
+          string = map JString (tok TString) 
           null = map (always JNull) (tok TNull)
           true = map (always (JBool True)) (tok TTrue)
           false = map (always (JBool False)) (tok TFalse) in 

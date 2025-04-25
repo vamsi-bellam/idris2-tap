@@ -391,8 +391,8 @@ arith =  fix arith'
           -> {ct' : Vect n Type} 
           -> Grammar (AExp :: ct') AExp IToken
     arith' = 
-      let int = map (\v => VInt v) (tok IInt)
-          id = map (\i => Loc i) (tok ILoc)
+      let int = map VInt (tok IInt)
+          id = map Loc (tok ILoc)
           toks = any [int, id]
       in
         map

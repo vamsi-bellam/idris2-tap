@@ -37,10 +37,10 @@ symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
 symbol = map (\s => (Tok Symbol (pack s))) word
 
 lparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-lparen = map (\_ => Tok LParen ()) (char '(')
+lparen = map (always (Tok LParen ())) (char '(')
 
 rparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-rparen = map (\_ => Tok RParen ()) (char ')')
+rparen = map (always (Tok RParen ())) (char ')')
 
 sexpToken : Grammar Nil (Token SToken) CharTag
 sexpToken = fix sexpToken'
@@ -85,10 +85,8 @@ sexpression = fix sexpression'
     sexpression' : Grammar [Sexp] Sexp SToken
     sexpression' = 
           alt 
-          (map (\arg => Sym arg) (wekeanGrammar (tok Symbol))) 
-          (map 
-            (\arg2 => Sequence arg2) 
-            (between (tok LParen) (star (var Z)) (tok RParen)))
+          (map Sym (wekeanGrammar (tok Symbol))) 
+          (map (Sequence) (between (tok LParen) (star (var Z)) (tok RParen)))
 
 export 
 parseSexp : String -> Either String Sexp
