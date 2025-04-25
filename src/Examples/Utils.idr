@@ -5,7 +5,24 @@ import Data.Vect
 import Grammar
 import Parser
 import Token
+import Var
 
+-- Reduced API from First Order to reduce verbosity
+
+export
+eps : {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> a
+   -> Grammar ct a tagType
+eps v = MkGrammar bot (Eps v)
+
+export
+bot : {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> Grammar ct a tagType
+bot = MkGrammar bot Bot
 
 export
 tok : {ct : Vect n Type} 
@@ -14,6 +31,54 @@ tok : {ct : Vect n Type}
    -> (tagType a)
    -> Grammar ct a tagType
 tok tag = MkGrammar bot (Tok tag)
+
+export
+alt : {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> Grammar ct a tagType
+   -> Grammar ct a tagType
+   -> Grammar ct a tagType
+alt a b = MkGrammar bot (Alt a b)
+
+export
+seq : {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> Grammar ct a tagType
+   -> Grammar ct b tagType
+   -> Grammar ct (a, b) tagType
+seq a b = MkGrammar bot (Seq a b)
+
+export
+map : {a : Type} 
+   -> {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> (a -> b) 
+   -> Grammar ct a tagType
+   -> Grammar ct b tagType
+map f a = MkGrammar bot (Map f a)
+
+export
+fix : {a : Type} 
+   -> {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> Grammar (a :: ct) a tagType 
+   -> Grammar ct a tagType
+fix x = MkGrammar bot (Fix x)
+
+export
+var : {a : Type}
+   -> {ct : Vect n Type} 
+   -> {tagType : Type -> Type} 
+   -> {auto _ : Tag tagType} 
+   -> Var a ct
+   -> Grammar ct a tagType
+var x = MkGrammar bot (Var x)
+
+-- End of Reduced API
 
 export
 always : a -> b -> a
@@ -26,10 +91,7 @@ maybe : {a : Type}
      -> {ct : Vect n Type} 
      -> Grammar ct a tok 
      -> Grammar ct (Maybe a) tok
-maybe p = any [
-  MkGrammar bot (Map (\x => Just x) p),
-  MkGrammar bot (Eps Nothing)
-]
+maybe p = any [ map (\x => Just x) p, eps Nothing ]
 
 export
 between : {a, b, c : Type} 
@@ -40,13 +102,10 @@ between : {a, b, c : Type}
        -> Grammar ct b k 
        -> Grammar ct c k
        -> Grammar ct b k
-between left p right = 
-  MkGrammar 
-    bot 
-    (Map 
-      (\((_, b), _) => b) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq left p)) right)))
+between left p right = map (\((_, b), _) => b) (seq (seq left p) right)
 
+
+-- Basic helper parsers 
 
 export
 data CharTag : Type -> Type where 
@@ -62,7 +121,6 @@ Tag CharTag where
 
   show (CT c) = show c 
 
-
 export
 toTokens : String -> (List (Token CharTag))
 toTokens input = toTokens' (unpack input) where 
@@ -70,18 +128,17 @@ toTokens input = toTokens' (unpack input) where
   toTokens' [] = []
   toTokens' (x :: xs) = Tok (CT x) x :: (toTokens' xs)
   
-
+export
 char : {ct : Vect n Type} -> Char -> Grammar ct Char CharTag
-char c = MkGrammar bot (Map (\_ => c) (tok (CT c)))
+char c = map (\_ => c) (tok (CT c))
 
 export
 charSet : {ct : Vect n Type} -> String -> Grammar ct Char CharTag
 charSet str =  charSet' (unpack str)
   where
     charSet' : List Char -> Grammar ct Char CharTag
-    charSet' [] = MkGrammar bot Bot
-    charSet' (x :: xs) = MkGrammar bot (Alt (char x) (charSet' xs))
-
+    charSet' [] = bot
+    charSet' (x :: xs) = alt (char x) (charSet' xs)
 
 -- Considering Only Basic Latin (ASCII)	- Letters, digits, symbols
 export
@@ -106,10 +163,7 @@ upper = charSet "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 export
 word : {n : Nat} -> {ct : Vect n Type}  -> Grammar ct (List Char) CharTag
-word = 
-  MkGrammar 
-    bot 
-    (Map (\(c, cs) => c :: cs) (MkGrammar bot (Seq upper (star lower))))
+word = map (\(c, cs) => c :: cs) (seq upper (star lower))
 
 export
 whitespace : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Char CharTag
@@ -121,10 +175,10 @@ skipSpace : {a : Type}
          -> {ct : Vect n Type} 
          -> Grammar ct a CharTag 
          -> Grammar ct a CharTag
-skipSpace g = 
-  MkGrammar 
-    bot 
-    (Map (\x => snd x) (MkGrammar bot (Seq whitespace g)))
+skipSpace g = map (\x => snd x) (seq whitespace g)
+
+
+-- Helpers to generate lexed tokens and parser
 
 export 
 lexer : {a : Type} -> Grammar Nil a CharTag -> String -> Either String (List a)

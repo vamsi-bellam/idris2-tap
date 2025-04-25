@@ -23,8 +23,6 @@ data JsonToken : Type -> Type where
   TColon : JsonToken ()
   TComma : JsonToken ()
 
--- TNull < TTrue < TFalse < TDecimal < TString < TLBrace < TRBrace
--- < TLBracket < TRBracket < TColon < TComma
 Tag JsonToken where
   compare TNull TNull = Eql
   compare TNull _ = Leq
@@ -85,103 +83,71 @@ Tag JsonToken where
 
 
 lbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-lbracket = MkGrammar bot (Map (always (Tok TLBracket ())) (charSet "["))
-
+lbracket = map (always (Tok TLBracket ())) (charSet "[")
 
 rbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-rbracket = MkGrammar bot (Map (always (Tok TRBracket ())) (charSet "]"))
-
+rbracket = map (always (Tok TRBracket ())) (charSet "]")
 
 lbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-lbrace = MkGrammar bot (Map (always (Tok TLBrace ())) (charSet "{"))
-
+lbrace = map (always (Tok TLBrace ())) (charSet "{")
 
 rbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-rbrace = MkGrammar bot (Map (always (Tok TRBrace ())) (charSet "}"))
-
+rbrace = map (always (Tok TRBrace ())) (charSet "}")
 
 comma : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-comma =  MkGrammar bot (Map (always (Tok TComma ())) (charSet ","))
-
+comma =  map (always (Tok TComma ())) (charSet ",")
 
 colon : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-colon =  MkGrammar bot (Map (always (Tok TColon ())) (charSet ":"))
-
-
+colon =  map (always (Tok TColon ())) (charSet ":")
 
 nullp : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-nullp = 
-  MkGrammar bot 
-  (Map (always (Tok TNull ())) 
-    (MkGrammar bot 
-      (Seq 
-        (charSet "n") 
-        (MkGrammar bot 
-          (Seq (charSet "u") 
-            (MkGrammar bot (Seq (charSet "l") (charSet "l"))))))))
-
+nullp = map 
+          (always (Tok TNull ())) 
+          (seq 
+            (charSet "n") 
+            (seq (charSet "u") (seq (charSet "l") (charSet "l"))))
 
 truep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-truep = 
-  MkGrammar bot 
-  (Map (always (Tok TTrue True)) 
-    (MkGrammar bot 
-      (Seq 
-        (charSet "t") 
-        (MkGrammar bot 
-          (Seq (charSet "r") 
-            (MkGrammar bot (Seq (charSet "u") (charSet "e"))))))))
-
+truep = map 
+          (always (Tok TTrue True)) 
+          (seq 
+            (charSet "t") 
+            (seq (charSet "r") (seq (charSet "u") (charSet "e"))))
 
 falsep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-falsep = 
-  MkGrammar bot 
-  (Map (always (Tok TFalse False)) 
-    (MkGrammar bot 
-      (Seq 
-        (charSet "f") 
-        (MkGrammar bot 
-          (Seq (charSet "a") 
-            (MkGrammar bot 
-              (Seq (charSet "l") 
-                (MkGrammar bot (Seq (charSet "s") (charSet "e"))))))))))
+falsep = map 
+          (always (Tok TFalse False)) 
+          (seq 
+            (charSet "f") 
+            (seq 
+              (charSet "a") 
+              (seq (charSet "l") (seq (charSet "s") (charSet "e")))))
 
-
-fullstringp : {n : Nat} -> {ct : Vect n Type} -> 
-              Grammar ct (Token JsonToken) CharTag
-fullstringp = 
-  MkGrammar bot
-  (Map (\((_, s), _) => Tok TString (pack s)) 
-   (MkGrammar bot 
-    (Seq 
-      (MkGrammar bot (Seq (charSet "\"") (star (compCharSet "\"")))) 
-      (charSet "\"") )))
-
+fullstringp : {n : Nat} 
+           -> {ct : Vect n Type} 
+           -> Grammar ct (Token JsonToken) CharTag
+fullstringp = map 
+                (\((_, s), _) => Tok TString (pack s)) 
+                (seq 
+                  (seq (charSet "\"") (star (compCharSet "\""))) 
+                  (charSet "\""))
 
 decimal : {n : Nat} 
        -> {ct : Vect n Type} 
        -> Grammar ct (Token JsonToken) CharTag
-decimal = 
-  MkGrammar 
-    bot
-    (Map 
-      toDecimal 
-      (MkGrammar 
-        bot 
-        (Seq 
-          (plus digit) 
-          (maybe (MkGrammar bot (Seq (charSet ".") (plus digit)))))))
+decimal = map
+            toDecimal  
+            (seq 
+              (plus digit) 
+              (maybe (seq (charSet ".") (plus digit))))
   where 
     toDecimal : (List Char, Maybe (Char, List Char)) -> Token JsonToken
     toDecimal (num, Nothing) = Tok TDecimal (cast $ pack num)
     toDecimal (num, (Just (dot, frac))) = 
       Tok TDecimal (cast $ pack (num ++ [dot] ++ frac))
     
-
-
 jsonToken : Grammar Nil (Token JsonToken) CharTag
-jsonToken = 
-  MkGrammar bot (Fix {a = Token JsonToken} jsonToken')
+jsonToken = fix jsonToken'
   where
     jsonToken' : Grammar [Token JsonToken] (Token JsonToken) CharTag
     jsonToken' = 
@@ -197,7 +163,7 @@ jsonToken =
         , falsep
         , fullstringp
         , decimal
-        , skipSpace (MkGrammar bot (Var Z))
+        , skipSpace (var Z)
         ]
 
 public export
@@ -259,28 +225,18 @@ sepByComma : {a : Type}
           -> {ct : Vect n Type} 
           -> Grammar ct a JsonToken 
           -> Grammar ct (List a) JsonToken
-sepByComma g = 
-  MkGrammar bot (Fix {a = List a} (sepByComma' g))
+sepByComma g = fix (sepByComma' g)
   where
-    sepByComma' : Grammar ct a JsonToken -> 
-                  Grammar (List a :: ct) (List a) JsonToken
-    sepByComma' g = 
-      MkGrammar 
-        bot 
-        (Alt 
-          (MkGrammar bot (Eps []))
-          (MkGrammar bot 
-            (Map 
-              (\(x, xs) => case xs of 
+    sepByComma' : Grammar ct a JsonToken 
+               -> Grammar (List a :: ct) (List a) JsonToken
+    sepByComma' g =  
+        (alt 
+          (eps [])
+          (map 
+            (\(x, xs) => case xs of 
                                 Nothing => [x]
                                 Just(_, rest) => x :: rest) 
-              (MkGrammar 
-                bot 
-                (Seq 
-                  (wekeanGrammar g)
-                  (maybe (MkGrammar 
-                            bot 
-                            (Seq (tok TComma) (MkGrammar bot (Var Z))))))))))
+            (seq (wekeanGrammar g) (maybe (seq (tok TComma) (var Z))))))
 
 
                           
@@ -289,42 +245,35 @@ member : {a : Type}
       -> {ct : Vect n Type} 
       -> Grammar ct a JsonToken 
       -> Grammar ct (String, a) JsonToken
-member x = 
-  MkGrammar 
-    bot 
-    (Map 
-      (\((key, _), val) => (key, val)) 
-      (MkGrammar bot (Seq (MkGrammar bot (Seq (tok TString)  (tok TColon))) x)))
+member x = map  
+            (\((key, _), val) => (key, val)) 
+            (seq (seq (tok TString) (tok TColon)) x)
 
 json : Grammar Nil JsonValue JsonToken
-json = MkGrammar bot (Fix {a = JsonValue} json')
+json = fix json'
   where
     json' : Grammar [JsonValue] JsonValue JsonToken
     json' = 
       let object = 
-            MkGrammar 
-              bot 
-              (Map 
-                (\kvpairs => JObject kvpairs) 
-                (between 
-                  (tok TLBrace) 
-                  (sepByComma (member (MkGrammar bot (Var Z)))) 
-                  (tok TRBrace)))
+            map
+              (\kvpairs => JObject kvpairs) 
+              (between 
+                (tok TLBrace) 
+                (sepByComma (member (var Z))) 
+                (tok TRBrace))
           array = 
-            MkGrammar 
-              bot 
-              (Map (\rest => JArray rest) 
-                (between 
-                  (tok TLBracket) 
-                  (sepByComma (MkGrammar bot (Var Z))) 
-                  (tok TRBracket)))
-          decimal = MkGrammar bot (Map (\ db => JDecimal db ) (tok TDecimal))
-          string = MkGrammar bot (Map (\s => JString s ) (tok TString) )
-          null = MkGrammar bot (Map (always JNull) (tok TNull))
-          true = MkGrammar bot (Map (always (JBool True)) (tok TTrue))
-          false = MkGrammar bot (Map (always (JBool False)) (tok TFalse)) in 
+            map 
+              (\rest => JArray rest) 
+              (between 
+                (tok TLBracket) 
+                (sepByComma (var Z)) 
+                (tok TRBracket))
+          decimal = map (\ db => JDecimal db ) (tok TDecimal)
+          string = map (\s => JString s ) (tok TString) 
+          null = map (always JNull) (tok TNull)
+          true = map (always (JBool True)) (tok TTrue)
+          false = map (always (JBool False)) (tok TFalse) in 
       any [object, array, decimal, string, null, true, false]
-
 
 export
 parseJSON : String -> Either String JsonValue

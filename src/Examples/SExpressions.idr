@@ -34,17 +34,16 @@ Tag SToken where
   show RParen = "RParen"
   
 symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-symbol = MkGrammar bot (Map (\s => (Tok Symbol (pack s))) (word))
+symbol = map (\s => (Tok Symbol (pack s))) word
 
 lparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-lparen = MkGrammar bot (Map (\_ => Tok LParen ()) ((charSet "(")))
+lparen = map (\_ => Tok LParen ()) (char '(')
 
 rparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-rparen = MkGrammar bot (Map (\_ => Tok RParen ()) ((charSet ")")))
+rparen = map (\_ => Tok RParen ()) (char ')')
 
 sexpToken : Grammar Nil (Token SToken) CharTag
-sexpToken = 
-  MkGrammar bot (Fix {a = Token SToken} sexpToken')
+sexpToken = fix sexpToken'
   where
     sexpToken' : Grammar [Token SToken] (Token SToken) CharTag
     sexpToken' = 
@@ -52,7 +51,7 @@ sexpToken =
         [ symbol
         , lparen
         , rparen
-        , skipSpace (MkGrammar bot (Var Z))
+        , skipSpace (var Z)
         ]
 
 public export
@@ -81,20 +80,15 @@ Eq Sexp where
   _ == _ = False
 
 sexpression : Grammar Nil Sexp SToken
-sexpression = 
-  MkGrammar bot (Fix {a = Sexp} sexpression')
+sexpression = fix sexpression'
   where
     sexpression' : Grammar [Sexp] Sexp SToken
     sexpression' = 
-      MkGrammar 
-        bot 
-        (Alt 
-          (MkGrammar bot (Map (\arg => Sym arg) (wekeanGrammar (tok Symbol)))) 
-          (MkGrammar 
-            bot 
-            (Map 
-              (\arg2 => Sequence arg2) 
-              (between (tok LParen) (star (MkGrammar bot (Var Z))) (tok RParen)))))
+          alt 
+          (map (\arg => Sym arg) (wekeanGrammar (tok Symbol))) 
+          (map 
+            (\arg2 => Sequence arg2) 
+            (between (tok LParen) (star (var Z)) (tok RParen)))
 
 export 
 parseSexp : String -> Either String Sexp
