@@ -10,6 +10,8 @@ import Token
 
 import Examples.Utils
 
+%hide Prelude.Ops.infixr.(<|>)
+
 export
 data SToken : Type -> Type where 
   Symbol : SToken String
@@ -34,13 +36,13 @@ Tag SToken where
   show RParen = "RParen"
   
 symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-symbol = map (\s => (Tok Symbol (pack s))) word
+symbol = (\s => (Tok Symbol (pack s))) $$ word
 
 lparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-lparen = map (always (Tok LParen ())) (char '(')
+lparen = always (Tok LParen ()) $$ char '('
 
 rparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-rparen = map (always (Tok RParen ())) (char ')')
+rparen = always (Tok RParen ()) $$ char ')'
 
 sexpToken : Grammar Nil (Token SToken) CharTag
 sexpToken = fix sexpToken'
@@ -84,9 +86,8 @@ sexpression = fix sexpression'
   where
     sexpression' : Grammar [Sexp] Sexp SToken
     sexpression' = 
-          alt 
-          (map Sym (wekeanGrammar (tok Symbol))) 
-          (map (Sequence) (between (tok LParen) (star (var Z)) (tok RParen)))
+      (Sym $$ tok Symbol) <|>
+      (Sequence $$ (between (tok LParen) (star (var Z)) (tok RParen)))
 
 export 
 parseSexp : String -> Either String Sexp

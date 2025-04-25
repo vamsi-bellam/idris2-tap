@@ -10,6 +10,8 @@ import Token
 
 import Examples.Utils
 
+%hide Prelude.Ops.infixr.(<|>)
+
 data JsonToken : Type -> Type where
   TNull : JsonToken ()
   TTrue : JsonToken Bool
@@ -83,63 +85,45 @@ Tag JsonToken where
 
 
 lbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-lbracket = map (always (Tok TLBracket ())) (charSet "[")
+lbracket = always (Tok TLBracket ()) $$ char '['
 
 rbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-rbracket = map (always (Tok TRBracket ())) (charSet "]")
+rbracket = always (Tok TRBracket ()) $$ char ']'
 
 lbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-lbrace = map (always (Tok TLBrace ())) (charSet "{")
+lbrace = always (Tok TLBrace ()) $$ char '{'
 
 rbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-rbrace = map (always (Tok TRBrace ())) (charSet "}")
+rbrace = always (Tok TRBrace ()) $$ char '}'
 
 comma : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-comma =  map (always (Tok TComma ())) (charSet ",")
+comma = always (Tok TComma ()) $$ char ','
 
 colon : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-colon =  map (always (Tok TColon ())) (charSet ":")
+colon = always (Tok TColon ()) $$ char ':'
 
 nullp : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-nullp = map 
-          (always (Tok TNull ())) 
-          (seq 
-            (charSet "n") 
-            (seq (charSet "u") (seq (charSet "l") (charSet "l"))))
+nullp = always (Tok TNull ()) $$ 
+        (char 'n' >>> char 'u' >>> char 'l' >>> char 'l')
 
 truep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-truep = map 
-          (always (Tok TTrue True)) 
-          (seq 
-            (charSet "t") 
-            (seq (charSet "r") (seq (charSet "u") (charSet "e"))))
+truep = always (Tok TTrue True) $$
+        (char 't' >>> char 'r' >>> char 'u' >>> char 'e')
 
 falsep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-falsep = map 
-          (always (Tok TFalse False)) 
-          (seq 
-            (charSet "f") 
-            (seq 
-              (charSet "a") 
-              (seq (charSet "l") (seq (charSet "s") (charSet "e")))))
+falsep = always (Tok TFalse False) $$
+         (char 'f' >>> char 'a' >>> char 'l' >>> char 's' >>> char 'e')
 
 fullstringp : {n : Nat} 
            -> {ct : Vect n Type} 
            -> Grammar ct (Token JsonToken) CharTag
-fullstringp = map 
-                (\((_, s), _) => Tok TString (pack s)) 
-                (seq 
-                  (seq (charSet "\"") (star (compCharSet "\""))) 
-                  (charSet "\""))
+fullstringp = (\((_, s), _) => Tok TString (pack s)) $$
+              (char '"' >>> star (compCharSet "\"") >>> char '"')
 
 decimal : {n : Nat} 
        -> {ct : Vect n Type} 
        -> Grammar ct (Token JsonToken) CharTag
-decimal = map
-            toDecimal  
-            (seq 
-              (plus digit) 
-              (maybe (seq (charSet ".") (plus digit))))
+decimal = toDecimal $$ (plus digit >>> maybe (char '.' >>> plus digit))
   where 
     toDecimal : (List Char, Maybe (Char, List Char)) -> Token JsonToken
     toDecimal (num, Nothing) = Tok TDecimal (cast $ pack num)
@@ -226,17 +210,17 @@ sepByComma : {a : Type}
           -> Grammar ct a JsonToken 
           -> Grammar ct (List a) JsonToken
 sepByComma g = fix (sepByComma' g)
+
   where
     sepByComma' : Grammar ct a JsonToken 
                -> Grammar (List a :: ct) (List a) JsonToken
     sepByComma' g =  
-        (alt 
-          (eps [])
-          (map 
-            (\(x, xs) => case xs of 
-                                Nothing => [x]
-                                Just(_, rest) => x :: rest) 
-            (seq (wekeanGrammar g) (maybe (seq (tok TComma) (var Z))))))
+        eps [] <|> (toList $$ (wekeanGrammar g >>> maybe (tok TComma >>> var Z)))
+
+      where 
+        toList : (a, Maybe ((), List a)) -> List a
+        toList (x, Nothing) = [x]
+        toList (x, (Just y)) = x :: (snd y)
 
 
                           
@@ -245,34 +229,22 @@ member : {a : Type}
       -> {ct : Vect n Type} 
       -> Grammar ct a JsonToken 
       -> Grammar ct (String, a) JsonToken
-member x = map  
-            (\((key, _), val) => (key, val)) 
-            (seq (seq (tok TString) (tok TColon)) x)
+member x = (\((key, _), val) => (key, val)) $$ (tok TString >>> tok TColon >>> x)
 
 json : Grammar Nil JsonValue JsonToken
 json = fix json'
   where
     json' : Grammar [JsonValue] JsonValue JsonToken
     json' = 
-      let object = 
-            map
-              (\kvpairs => JObject kvpairs) 
-              (between 
-                (tok TLBrace) 
-                (sepByComma (member (var Z))) 
-                (tok TRBrace))
-          array = 
-            map 
-              (\rest => JArray rest) 
-              (between 
-                (tok TLBracket) 
-                (sepByComma (var Z)) 
-                (tok TRBracket))
-          decimal = map JDecimal (tok TDecimal)
-          string = map JString (tok TString) 
-          null = map (always JNull) (tok TNull)
-          true = map (always (JBool True)) (tok TTrue)
-          false = map (always (JBool False)) (tok TFalse) in 
+      let object = JObject $$
+                  (between (tok TLBrace) (sepByComma (member (var Z))) (tok TRBrace))
+          array = JArray $$
+                  (between (tok TLBracket) (sepByComma (var Z)) (tok TRBracket))
+          decimal = JDecimal $$ tok TDecimal
+          string = JString $$ tok TString
+          null = always JNull $$ tok TNull
+          true = always (JBool True) $$ tok TTrue
+          false = always (JBool False) $$ tok TFalse in 
       any [object, array, decimal, string, null, true, false]
 
 export

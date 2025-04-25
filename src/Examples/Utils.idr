@@ -7,6 +7,8 @@ import Parser
 import Token
 import Var
 
+%hide Prelude.Ops.infixr.(<|>)
+
 -- Reduced API from First Order to reduce verbosity
 
 export
@@ -32,33 +34,40 @@ tok : {ct : Vect n Type}
    -> Grammar ct a tagType
 tok tag = MkGrammar bot (Tok tag)
 
+export 
+infixl 6 <|> 
 export
-alt : {ct : Vect n Type} 
+(<|>) : {ct : Vect n Type} 
    -> {tagType : Type -> Type} 
    -> {auto _ : Tag tagType} 
    -> Grammar ct a tagType
    -> Grammar ct a tagType
    -> Grammar ct a tagType
-alt a b = MkGrammar bot (Alt a b)
+(<|>) a b = MkGrammar bot (Alt a b)
+
 
 export
-seq : {ct : Vect n Type} 
+infixl 6 >>> 
+export
+(>>>) : {ct : Vect n Type} 
    -> {tagType : Type -> Type} 
    -> {auto _ : Tag tagType} 
    -> Grammar ct a tagType
    -> Grammar ct b tagType
    -> Grammar ct (a, b) tagType
-seq a b = MkGrammar bot (Seq a b)
+(>>>) a b = MkGrammar bot (Seq a b)
 
 export
-map : {a : Type} 
+infixl 6 $$ 
+export
+($$) : {a : Type} 
    -> {ct : Vect n Type} 
    -> {tagType : Type -> Type} 
    -> {auto _ : Tag tagType} 
    -> (a -> b) 
    -> Grammar ct a tagType
    -> Grammar ct b tagType
-map f a = MkGrammar bot (Map f a)
+($$) f a = MkGrammar bot (Map f a)
 
 export
 fix : {a : Type} 
@@ -91,7 +100,7 @@ maybe : {a : Type}
      -> {ct : Vect n Type} 
      -> Grammar ct a tok 
      -> Grammar ct (Maybe a) tok
-maybe p = any [ map (\x => Just x) p, eps Nothing ]
+maybe p = any [ (\x => Just x) $$ p, eps Nothing ]
 
 export
 between : {a, b, c : Type} 
@@ -102,7 +111,7 @@ between : {a, b, c : Type}
        -> Grammar ct b k 
        -> Grammar ct c k
        -> Grammar ct b k
-between left p right = map (\((_, b), _) => b) (seq (seq left p) right)
+between left p right = (\((_, b), _) => b) $$ (left >>> p >>> right)
 
 
 -- Basic helper parsers 
@@ -130,7 +139,7 @@ toTokens input = toTokens' (unpack input) where
   
 export
 char : {ct : Vect n Type} -> Char -> Grammar ct Char CharTag
-char c = map (\_ => c) (tok (CT c))
+char c = always c $$ tok (CT c)
 
 export
 charSet : {ct : Vect n Type} -> String -> Grammar ct Char CharTag
@@ -138,16 +147,15 @@ charSet str =  charSet' (unpack str)
   where
     charSet' : List Char -> Grammar ct Char CharTag
     charSet' [] = bot
-    charSet' (x :: xs) = alt (char x) (charSet' xs)
+    charSet' (x :: xs) = char x <|> charSet' xs
 
 -- Considering Only Basic Latin (ASCII)	- Letters, digits, symbols
 export
 compCharSet : {ct : Vect n Type} -> String -> Grammar ct Char CharTag
 compCharSet s = 
   let chs = map cast (unpack s)
-      rg = [0..127]
-      flt = filter (\x => (not (elem x chs))) rg
-  in charSet $ pack $ map cast flt 
+      predicate = filter (\x => (not (elem x chs))) [0..127]
+  in charSet $ pack $ map cast predicate 
 
 export
 digit : {ct : Vect n Type} -> Grammar ct Char CharTag
@@ -163,7 +171,7 @@ upper = charSet "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 export
 word : {n : Nat} -> {ct : Vect n Type}  -> Grammar ct (List Char) CharTag
-word = map (\(c, cs) => c :: cs) (seq upper (star lower))
+word = (\(c, cs) => c :: cs) $$ (upper >>> star lower)
 
 export
 whitespace : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Char CharTag
@@ -175,7 +183,7 @@ skipSpace : {a : Type}
          -> {ct : Vect n Type} 
          -> Grammar ct a CharTag 
          -> Grammar ct a CharTag
-skipSpace g = map (\x => snd x) (seq whitespace g)
+skipSpace g = snd $$ (whitespace >>> g)
 
 
 -- Helpers to generate lexed tokens and parser
