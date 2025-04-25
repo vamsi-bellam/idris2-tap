@@ -30,8 +30,8 @@ mutual
          -> GrammarType ct a tagType
 
       Map : {a : Type} 
-         -> (a -> b) 
          -> Grammar ct a tagType 
+         -> (a -> b) 
          -> GrammarType ct b tagType
 
       Fix : {a : Type} 
@@ -69,7 +69,7 @@ mutual
   showGrammarType (Tok c) = "Tok "
   showGrammarType Bot = "Bot"
   showGrammarType (Alt x y) = "Alt \{showGrammar x} \{showGrammar y}"
-  showGrammarType (Map f x) = "Map <func> \{showGrammar x}"
+  showGrammarType (Map x f) = "Map \{showGrammar x} <func>"
   showGrammarType (Fix x) = "Fix \{showGrammar x}"
   showGrammarType (Var x) = "Var \{show x}"
 
@@ -119,10 +119,10 @@ typeof env (MkGrammar _ (Alt g1 g2)) =
     altRes <- alt (g1'.lang) (g2'.lang) 
     Right (MkGrammar altRes (Alt g1' g2'))
 
-typeof env (MkGrammar _ (Map f g)) = 
+typeof env (MkGrammar _ (Map g f)) = 
   do  
     g' <- typeof env g 
-    Right (MkGrammar g'.lang (Map f g'))
+    Right (MkGrammar g'.lang (Map g' f))
 
 typeof env (MkGrammar _ (Fix g)) = 
   do 
@@ -214,7 +214,7 @@ mapGrammar f prf (MkGrammar l g) = MkGrammar l (mapGramType f prf g)
     mapGramType f prf (Alt g1 g2) = 
       Alt (mapGrammar f prf g1) (mapGrammar f prf g2)
 
-    mapGramType f prf (Map fn g) = Map fn (mapGrammar f prf g)
+    mapGramType f prf (Map g fn) = Map (mapGrammar f prf g) fn
     mapGramType f prf (Fix {a = l} {ct = bt} g) = 
       Fix (mapGrammar (extendedFn f) (extendedPrf prf) g)
     mapGramType f prf (Var v) = Var (reindexVar v f prf)
@@ -249,12 +249,12 @@ star g =
       MkGrammar bot (Alt 
                       (MkGrammar bot (Eps []))
                       (MkGrammar bot 
-                        (Map (\(x, xs) => x :: xs) 
+                        (Map
                           (MkGrammar bot 
                             (Seq 
                               (wekeanGrammar g)
                               (MkGrammar bot (Var Z))
-                            )))))
+                            )) (\(x, xs) => x :: xs) )))
 
 export
 plus : {a : Type} 
@@ -265,7 +265,7 @@ plus : {a : Type}
     -> Grammar ct a tagType 
     -> Grammar ct (List a) tagType
 plus g = 
-  MkGrammar bot (Map (\(x, xs) => x :: xs) (MkGrammar bot (Seq g (star g))))
+  MkGrammar bot (Map (MkGrammar bot (Seq g (star g))) (\(x, xs) => x :: xs))
 
 export
 any : {ct : Vect n Type} 

@@ -192,17 +192,17 @@ Tag IToken where
 
 
 lparen : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-lparen = always (Tok ILparen ()) $$ char '('
+lparen = char '(' $$ always (Tok ILparen ()) 
 
 rparen : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-rparen = always (Tok IRParen ()) $$ char ')'
+rparen = char ')' $$ always (Tok IRParen ())
 
 intp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-intp = (\xs => Tok IInt (cast $ pack xs)) $$ plus digit
+intp = plus digit $$ (\xs => Tok IInt (cast $ pack xs))
 
 stp : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-stp = (\((x, xs)) => toToken $ pack (x :: xs)) $$
-        (any [lower, upper] >>> star (any [lower, upper, digit]))
+stp = (any [lower, upper] >>> star (any [lower, upper, digit]))
+      $$ (\((x, xs)) => toToken $ pack (x :: xs))
   where 
     toToken : String -> Token IToken
     toToken "if" = Tok IIf ()
@@ -217,10 +217,10 @@ stp = (\((x, xs)) => toToken $ pack (x :: xs)) $$
     toToken str = Tok ILoc str
 
 plus : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-plus = always (Tok IPlus APlus) $$ char '+'
+plus = char '+' $$ always (Tok IPlus APlus)
 
 minus : {n : Nat } -> {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-minus = toToken $$ ((char '-') >>> (maybe (plus digit)))
+minus = ((char '-') >>> (maybe (plus digit))) $$ toToken
 
   where
     toToken : (Char, Maybe (List Char)) -> (Token IToken)
@@ -228,28 +228,28 @@ minus = toToken $$ ((char '-') >>> (maybe (plus digit)))
     toToken (x, (Just rest)) = Tok IInt (cast $ pack (x :: rest))
 
 mult : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-mult = always (Tok IMult AMult) $$ char '*'
+mult = char '*' $$ always (Tok IMult AMult) 
 
 equal : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-equal = always (Tok IEqual AEq) $$ char '='
+equal = char '=' $$ always (Tok IEqual AEq)
 
 lte : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-lte = always (Tok ILTE ALte) $$ (char '<' >>> char '=')
+lte = (char '<' >>> char '=') $$ always (Tok ILTE ALte)
 
 not : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-not = always (Tok INot ()) $$ char '!'
+not = char '!' $$ always (Tok INot ()) 
 
 and : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-and = always (Tok IAnd BAnd) $$ (char '&' >>> char '&')
+and = (char '&' >>> char '&') $$ always (Tok IAnd BAnd)
 
 or : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-or = always (Tok IOr BOr) $$ (char '|' >>> char '|')
+or = (char '|' >>> char '|') $$ always (Tok IOr BOr)
 
 assign : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-assign = always (Tok IAssign ()) $$ (char ':' >>> char '=')
+assign = (char ':' >>> char '=') $$  always (Tok IAssign ())
 
 seq : {ct : Vect n Type} -> Grammar ct (Token IToken) CharTag
-seq = always (Tok ISeq ()) $$ char ';'
+seq = char ';' $$ always (Tok ISeq ()) 
 
 impToken : Grammar Nil (Token IToken) CharTag
 impToken = fix impToken'
@@ -385,10 +385,11 @@ arith =  fix arith'
           -> {ct' : Vect n Type} 
           -> Grammar (AExp :: ct') AExp IToken
     arith' = 
-      let int = VInt $$ (tok IInt)
-          id = Loc $$ (tok ILoc)
+      let int = tok IInt $$ VInt
+          id = tok ILoc $$ Loc
           toks = any [int, id]
-      in toAExp $$ (toks >>> maybe (any [tok IPlus, tok IMinus, tok IMult] >>> var Z))
+      in (toks >>> maybe (any [tok IPlus, tok IMinus, tok IMult] >>> var Z)) $$ 
+          toAExp
       
       where 
         toAExp : (AExp, Maybe (Aop, AExp)) -> AExp
@@ -407,26 +408,26 @@ bool = fix bool'
          -> {ct' : Vect n Type} 
          -> Grammar (BExp :: ct') BExp IToken
     bool' = 
-      let true = always VTrue $$ tok ITrue
-          false = always VFalse $$ tok IFalse
-          eq = (\((a1, op), a2) => case op of 
+      let true = tok ITrue $$ always VTrue 
+          false = tok IFalse $$ always VFalse
+          eq =  (arith >>> any [tok IEqual, tok ILTE] >>> arith) $$ 
+                (\((a1, op), a2) => case op of 
                                         AEq => Eq (a1, a2)
-                                        ALte => LTE (a1, a2))  $$
-                (arith >>> any [tok IEqual, tok ILTE] >>> arith)
+                                        ALte => LTE (a1, a2))
           te = any [paren (var Z), true, false, eq]
-          nt = (\(_, xs) => Not xs) $$ (tok INot >>> te)
-          tes = (\(x, xs) => 
+          nt = (tok INot >>> te) $$  (\(_, xs) => Not xs)
+          tes = (te >>> (star (any [tok IAnd, tok IOr] >>> any [te, nt]))) $$
+                (\(x, xs) => 
                       foldl (\acc, (op , rem) => 
                         case op of 
                               BAnd => And (acc, rem)
-                              BOr => Or (acc, rem)) x xs) $$
-                (te >>> (star (any [tok IAnd, tok IOr] >>> any [te, nt])))
-          ntes = (\(x, xs) => 
+                              BOr => Or (acc, rem)) x xs) 
+          ntes = (nt >>> (star (any [tok IAnd, tok IOr] >>> any [te, nt]))) $$
+                 (\(x, xs) => 
                         foldl (\acc, (op , rem) =>
                           case op of 
                                 BAnd => And (acc, rem)
-                                BOr => Or (acc, rem)) x xs) $$
-                 (nt >>> (star (any [tok IAnd, tok IOr] >>> any [te, nt])))
+                                BOr => Or (acc, rem)) x xs) 
       in
       any [tes, ntes]
 
@@ -435,22 +436,22 @@ command : Grammar Nil Command IToken
 command = fix command'
   where
     command' : Grammar [Command] Command IToken
-    command' = (\(b, ms) => case ms of
+    command' = (any [baseCommand, paren baseCommand] 
+                >>> maybe (tok ISeq >>> var Z)) $$ 
+                (\(b, ms) => case ms of
                                   Nothing => b
-                                  Just (_, c) => Seq (b, c)) $$
-                (any [baseCommand, paren baseCommand] 
-                >>> maybe (tok ISeq >>> var Z))
+                                  Just (_, c) => Seq (b, c))
     where
      baseCommand : Grammar [Command] Command IToken
      baseCommand = 
-      let skip = always Skip $$ tok ISkip
-          assign = (\((id, _), aexp) => Assign (id, aexp)) $$
-                   (tok ILoc >>> tok IAssign >>> arith)
-          ifelse = (\(((((((_, b), _), c1), _), c2), _)) => ITE (b, c1, c2)) $$
-                   (tok IIf >>> bool >>> tok IThen >>> var Z >>> tok IElse 
-                    >>> var Z >>> tok IDone)
-          whiledo = (\(((((_, b), _), c), _)) => While (b, c)) $$ 
-                    (tok IWhile >>> bool >>> tok IDo >>> var Z >>> tok IDone)
+      let skip    = tok ISkip $$ always Skip 
+          assign  = (tok ILoc >>> tok IAssign >>> arith) $$ 
+                   (\((id, _), aexp) => Assign (id, aexp)) 
+          ifelse  = (tok IIf >>> bool >>> tok IThen >>> var Z >>> tok IElse >>> 
+                    var Z >>> tok IDone) $$ 
+                    (\(((((((_, b), _), c1), _), c2), _)) => ITE (b, c1, c2))
+          whiledo = (tok IWhile >>> bool >>> tok IDo >>> var Z >>> tok IDone) $$ 
+                    (\(((((_, b), _), c), _)) => While (b, c))
       in any [skip, assign, whiledo, ifelse]
 
 export 

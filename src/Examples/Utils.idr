@@ -64,10 +64,10 @@ export
    -> {ct : Vect n Type} 
    -> {tagType : Type -> Type} 
    -> {auto _ : Tag tagType} 
-   -> (a -> b) 
    -> Grammar ct a tagType
+   -> (a -> b) 
    -> Grammar ct b tagType
-($$) f a = MkGrammar bot (Map f a)
+($$) a f = MkGrammar bot (Map a f)
 
 export
 fix : {a : Type} 
@@ -100,7 +100,7 @@ maybe : {a : Type}
      -> {ct : Vect n Type} 
      -> Grammar ct a tok 
      -> Grammar ct (Maybe a) tok
-maybe p = any [ (\x => Just x) $$ p, eps Nothing ]
+maybe p = any [p $$ Just, eps Nothing ]
 
 export
 between : {a, b, c : Type} 
@@ -111,7 +111,7 @@ between : {a, b, c : Type}
        -> Grammar ct b k 
        -> Grammar ct c k
        -> Grammar ct b k
-between left p right = (\((_, b), _) => b) $$ (left >>> p >>> right)
+between left p right = (left >>> p >>> right) $$ (\((_, b), _) => b)
 
 
 -- Basic helper parsers 
@@ -139,7 +139,7 @@ toTokens input = toTokens' (unpack input) where
   
 export
 char : {ct : Vect n Type} -> Char -> Grammar ct Char CharTag
-char c = always c $$ tok (CT c)
+char c = tok (CT c) $$ always c
 
 export
 charSet : {ct : Vect n Type} -> String -> Grammar ct Char CharTag
@@ -171,7 +171,7 @@ upper = charSet "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 export
 word : {n : Nat} -> {ct : Vect n Type}  -> Grammar ct (List Char) CharTag
-word = (\(c, cs) => c :: cs) $$ (upper >>> star lower)
+word = (upper >>> star lower) $$ (\(c, cs) => c :: cs)
 
 export
 whitespace : {n : Nat} -> {ct : Vect n Type} -> Grammar ct Char CharTag
@@ -183,7 +183,7 @@ skipSpace : {a : Type}
          -> {ct : Vect n Type} 
          -> Grammar ct a CharTag 
          -> Grammar ct a CharTag
-skipSpace g = snd $$ (whitespace >>> g)
+skipSpace g = (whitespace >>> g) $$ snd
 
 
 -- Helpers to generate lexed tokens and parser

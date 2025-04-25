@@ -85,45 +85,45 @@ Tag JsonToken where
 
 
 lbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-lbracket = always (Tok TLBracket ()) $$ char '['
+lbracket = char '[' $$ always (Tok TLBracket ()) 
 
 rbracket : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-rbracket = always (Tok TRBracket ()) $$ char ']'
+rbracket = char ']' $$ always (Tok TRBracket ()) 
 
 lbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-lbrace = always (Tok TLBrace ()) $$ char '{'
+lbrace = char '{' $$ always (Tok TLBrace ())
 
 rbrace : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-rbrace = always (Tok TRBrace ()) $$ char '}'
+rbrace = char '}' $$ always (Tok TRBrace ())
 
 comma : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-comma = always (Tok TComma ()) $$ char ','
+comma = char ',' $$ always (Tok TComma ()) 
 
 colon : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-colon = always (Tok TColon ()) $$ char ':'
+colon = char ':' $$ always (Tok TColon ())
 
 nullp : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-nullp = always (Tok TNull ()) $$ 
-        (char 'n' >>> char 'u' >>> char 'l' >>> char 'l')
+nullp = (char 'n' >>> char 'u' >>> char 'l' >>> char 'l') $$ 
+        always (Tok TNull ())
 
 truep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-truep = always (Tok TTrue True) $$
-        (char 't' >>> char 'r' >>> char 'u' >>> char 'e')
+truep = (char 't' >>> char 'r' >>> char 'u' >>> char 'e') $$ 
+        always (Tok TTrue True)
 
 falsep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
-falsep = always (Tok TFalse False) $$
-         (char 'f' >>> char 'a' >>> char 'l' >>> char 's' >>> char 'e')
+falsep = (char 'f' >>> char 'a' >>> char 'l' >>> char 's' >>> char 'e') $$ 
+          always (Tok TFalse False)
 
 fullstringp : {n : Nat} 
            -> {ct : Vect n Type} 
            -> Grammar ct (Token JsonToken) CharTag
-fullstringp = (\((_, s), _) => Tok TString (pack s)) $$
-              (char '"' >>> star (compCharSet "\"") >>> char '"')
+fullstringp = (char '"' >>> star (compCharSet "\"") >>> char '"') $$ 
+              (\((_, s), _) => Tok TString (pack s)) 
 
 decimal : {n : Nat} 
        -> {ct : Vect n Type} 
        -> Grammar ct (Token JsonToken) CharTag
-decimal = toDecimal $$ (plus digit >>> maybe (char '.' >>> plus digit))
+decimal = (plus digit >>> maybe (char '.' >>> plus digit)) $$ toDecimal
   where 
     toDecimal : (List Char, Maybe (Char, List Char)) -> Token JsonToken
     toDecimal (num, Nothing) = Tok TDecimal (cast $ pack num)
@@ -215,7 +215,7 @@ sepByComma g = fix (sepByComma' g)
     sepByComma' : Grammar ct a JsonToken 
                -> Grammar (List a :: ct) (List a) JsonToken
     sepByComma' g =  
-        eps [] <|> (toList $$ (wekeanGrammar g >>> maybe (tok TComma >>> var Z)))
+        eps [] <|> ((wekeanGrammar g >>> maybe (tok TComma >>> var Z)) $$ toList)
 
       where 
         toList : (a, Maybe ((), List a)) -> List a
@@ -229,22 +229,25 @@ member : {a : Type}
       -> {ct : Vect n Type} 
       -> Grammar ct a JsonToken 
       -> Grammar ct (String, a) JsonToken
-member x = (\((key, _), val) => (key, val)) $$ (tok TString >>> tok TColon >>> x)
+member x = (tok TString >>> tok TColon >>> x) $$ (\((key, _), val) => (key, val))
 
 json : Grammar Nil JsonValue JsonToken
 json = fix json'
   where
     json' : Grammar [JsonValue] JsonValue JsonToken
     json' = 
-      let object = JObject $$
-                  (between (tok TLBrace) (sepByComma (member (var Z))) (tok TRBrace))
-          array = JArray $$
-                  (between (tok TLBracket) (sepByComma (var Z)) (tok TRBracket))
-          decimal = JDecimal $$ tok TDecimal
-          string = JString $$ tok TString
-          null = always JNull $$ tok TNull
-          true = always (JBool True) $$ tok TTrue
-          false = always (JBool False) $$ tok TFalse in 
+      let object = (between 
+                      (tok TLBrace) 
+                      (sepByComma (member (var Z))) 
+                      (tok TRBrace)) $$ 
+                    JObject
+          array = (between (tok TLBracket) (sepByComma (var Z)) (tok TRBracket)) 
+                  $$ JArray
+          decimal = tok TDecimal $$ JDecimal
+          string = tok TString$$ JString
+          null = tok TNull $$ always JNull 
+          true = tok TTrue $$ always (JBool True) 
+          false = tok TFalse $$ always (JBool False) in 
       any [object, array, decimal, string, null, true, false]
 
 export

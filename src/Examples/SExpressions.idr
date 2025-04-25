@@ -36,13 +36,13 @@ Tag SToken where
   show RParen = "RParen"
   
 symbol : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-symbol = (\s => (Tok Symbol (pack s))) $$ word
+symbol = word $$ (\s => (Tok Symbol (pack s)))
 
 lparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-lparen = always (Tok LParen ()) $$ char '('
+lparen = char '(' $$ always (Tok LParen ())
 
 rparen : {n : Nat} -> {ct : Vect n Type} -> Grammar ct (Token SToken) CharTag
-rparen = always (Tok RParen ()) $$ char ')'
+rparen = char ')' $$ always (Tok RParen ()) 
 
 sexpToken : Grammar Nil (Token SToken) CharTag
 sexpToken = fix sexpToken'
@@ -86,8 +86,8 @@ sexpression = fix sexpression'
   where
     sexpression' : Grammar [Sexp] Sexp SToken
     sexpression' = 
-      (Sym $$ tok Symbol) <|>
-      (Sequence $$ (between (tok LParen) (star (var Z)) (tok RParen)))
+      (tok Symbol $$ Sym) <|>
+      ((between (tok LParen) (star (var Z)) (tok RParen)) $$ Sequence)
 
 export 
 parseSexp : String -> Either String Sexp
