@@ -8,12 +8,11 @@ import Token
 
 mutual
   public export
-  data GrammarType : 
-               {n : Nat} 
-            -> (ct : Vect n Type) 
-            -> (a : Type) 
-            -> (tagType : Type -> Type) 
-            -> Type 
+  data GrammarType : {n : Nat} 
+                  -> (ct : Vect n Type) 
+                  -> (a : Type) 
+                  -> (tagType : Type -> Type) 
+                  -> Type 
     where 
       Eps : a -> GrammarType ct a tagType
 
