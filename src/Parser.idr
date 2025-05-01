@@ -119,8 +119,5 @@ generateParser : {a: Type}
               -> {tagType : Type -> Type} 
               -> {auto _ : Tag tagType} 
               -> Grammar Nil a tagType 
-              -> Either String (Parser a tagType)
-generateParser gram = 
-  do 
-    typedGrammar <- typeCheck gram 
-    Right (parse typedGrammar Empty)
+              -> Parser a tagType
+generateParser typedGrammar = parse typedGrammar Empty

@@ -223,8 +223,8 @@ lexer : {a : Type} -> Grammar Nil a CharTag -> String -> Either String (List a)
 lexer gram input = 
   let lexer' : List (Token CharTag) -> List a -> Either String (List a)
       lexer' tokens acc = do 
-        parser <- generateParser gram
-        res <- parser tokens
+        typedGrammar <- typeCheck gram
+        res <- tokens |> generateParser typedGrammar
         case (snd res) of 
               [] => Right(acc ++ [fst res])
               (rest) => lexer' (rest) (acc ++ [fst res])
@@ -238,8 +238,8 @@ parser : {a : Type}
       -> (List (Token t)) 
       -> Either String a
 parser gram tokens = do
-  parser <- generateParser gram
-  res <- parser tokens
+  typedGrammar <- typeCheck gram
+  res <- tokens |> generateParser typedGrammar
   case (snd res) of 
     [] => Right (fst res)
     _ => Left ("Unable to parse entire input, remaining tokens - " 
