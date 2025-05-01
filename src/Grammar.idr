@@ -16,13 +16,14 @@ mutual
     where 
       Eps : a -> GrammarType ct a tagType
 
+      Tok : tagType a -> GrammarType ct a tagType
+
+      Bot : GrammarType ct a tagType
+      
       Seq : Grammar ct a tagType 
          -> Grammar ct b tagType 
          -> GrammarType ct (a, b) tagType
 
-      Tok : tagType a -> GrammarType ct a tagType
-
-      Bot : GrammarType ct a tagType
 
       Alt : Grammar ct a tagType 
          -> Grammar ct a tagType 
