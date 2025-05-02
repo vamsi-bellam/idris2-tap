@@ -135,12 +135,12 @@ maybe p = any [p $$ Just, eps Nothing ]
 export
 between : {a, b, c : Type} 
        -> {ct : Vect n Type} 
-       -> {k : Type -> Type} 
-       -> {auto _ : Tag k} 
-       -> Grammar ct a k 
-       -> Grammar ct b k 
-       -> Grammar ct c k
-       -> Grammar ct b k
+       -> {tagType : Type -> Type} 
+       -> {auto _ : Tag tagType} 
+       -> Grammar ct a tagType 
+       -> Grammar ct b tagType 
+       -> Grammar ct c tagType
+       -> Grammar ct b tagType
 between left p right = (left >>> p >>> right) $$ (\((_, b), _) => b)
 
 
