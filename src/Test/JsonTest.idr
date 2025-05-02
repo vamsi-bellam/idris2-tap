@@ -50,7 +50,7 @@ j5 =
       (Right 
         (JObject 
           [ ("name", JString "vamsi")
-          , ("gpa", JDecimal 3.85)
+          , ("gpa", JNumber (Decimal 3.85))
           , ("interests", JArray [JString "cricket"])
           ])))
 
@@ -62,7 +62,7 @@ j6 =
       (parseJSON "[\"Fundamentals of PL\",35.789,null,false]") 
       (Right 
         (JArray 
-          [JString "Fundamentals of PL", JDecimal 35.789, JNull, JBool False])))
+          [JString "Fundamentals of PL", JNumber (Decimal 35.789), JNull, JBool False])))
 
 j7 : Test
 j7 = 
@@ -98,7 +98,7 @@ j10 =
       (Right 
         (JObject 
           [ ("name", JString "vamsi")
-          , ("gpa", JDecimal 3.85)
+          , ("gpa", JNumber (Decimal 3.85))
           , ("interests", JArray [JString "cricket"])
           ])))
 
@@ -111,7 +111,8 @@ j11 =
       (Right 
         (JObject 
           [ ("name", JString "vamsi")
-          , ("gpa", JDecimal 3.85)
+          , ("age", JNumber (In 24))
+          , ("gpa", JNumber (Decimal 3.85))
           , ("interests", JArray [JString "cricket"])
           ])))
   where 
@@ -120,6 +121,7 @@ j11 =
       """
         { 
           \"name\" : \"vamsi\", 
+          \"age\" : 24,
           \"gpa\" : 3.85, 
           \"interests\" : [\"cricket\"] 
         }

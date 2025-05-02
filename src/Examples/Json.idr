@@ -12,11 +12,25 @@ import Examples.Utils
 
 %hide Prelude.Ops.infixr.(<|>)
 
+public export
+data Number = Decimal Double | In Int
+
+public export
+Show Number where
+  show (Decimal x) = show x
+  show (In x) = show x
+  
+public export
+Eq Number where
+  (Decimal x) == (Decimal y) = x == y
+  (In x) == (In y) = x == y
+  _ == _ = False
+
 data JsonToken : Type -> Type where
   TNull : JsonToken ()
   TTrue : JsonToken Bool
   TFalse : JsonToken Bool
-  TDecimal : JsonToken Double
+  TDecimal : JsonToken Number
   TString : JsonToken String
   TLBrace : JsonToken ()
   TRBrace : JsonToken ()
@@ -126,9 +140,9 @@ decimal : {n : Nat}
 decimal = (plus digit >>> maybe (char '.' >>> plus digit)) $$ toDecimal
   where 
     toDecimal : (List Char, Maybe (Char, List Char)) -> Token JsonToken
-    toDecimal (num, Nothing) = Tok TDecimal (cast $ pack num)
+    toDecimal (num, Nothing) = Tok TDecimal (In $ cast $ pack num)
     toDecimal (num, (Just (dot, frac))) = 
-      Tok TDecimal (cast $ pack (num ++ [dot] ++ frac))
+      Tok TDecimal (Decimal $ cast $ pack (num ++ [dot] ++ frac))
     
 jsonToken : Grammar Nil (Token JsonToken) CharTag
 jsonToken = fix jsonToken'
@@ -154,7 +168,7 @@ public export
 data JsonValue = 
     JNull
   | JBool Bool
-  | JDecimal Double
+  | JNumber Number
   | JString String
   | JArray (List JsonValue)
   | JObject (List (String, JsonValue))
@@ -163,7 +177,7 @@ export
 Eq JsonValue where
   JNull == JNull = True
   JBool x == JBool y = x == y
-  JDecimal x == JDecimal y = x == y
+  JNumber x == JNumber y = x == y
   JString x == JString y = x == y
   JArray xs == JArray ys = listJsonEq xs ys where 
     listJsonEq : List JsonValue -> List JsonValue -> Bool
@@ -179,15 +193,18 @@ Eq JsonValue where
   _ == _ = False
 
 
-Interpolation Double where 
-  interpolate d = cast d
+Interpolation Number where 
+  interpolate (Decimal d) =  cast d
+  interpolate (In i) =  cast i
+
+
 
 export
 Show JsonValue where 
   show JNull = "JNull"
   show (JBool True) = "JBool True"
   show (JBool False) = "JBool False"
-  show (JDecimal dbl) = "JDecimal \{dbl}"
+  show (JNumber dbl) = "JNumber \{dbl}"
   show (JString str) = "JString \{str}"
   show (JArray xs) = "JArray [" ++ show' "" xs ++ "]" 
     where
@@ -243,7 +260,7 @@ json = fix json'
                     JObject
           array = (between (tok TLBracket) (sepByComma (var Z)) (tok TRBracket)) 
                   $$ JArray
-          decimal = tok TDecimal $$ JDecimal
+          decimal = tok TDecimal $$ JNumber
           string = tok TString$$ JString
           null = tok TNull $$ always JNull 
           true = tok TTrue $$ always (JBool True) 
