@@ -125,11 +125,11 @@ always x = \_ => x
 
 export
 maybe : {a : Type} 
-     -> {tok : Type -> Type} 
-     -> {auto _ : Tag tok} 
+     -> {tagType : Type -> Type} 
+     -> {auto _ : Tag tagType} 
      -> {ct : Vect n Type} 
-     -> Grammar ct a tok 
-     -> Grammar ct (Maybe a) tok
+     -> Grammar ct a tagType 
+     -> Grammar ct (Maybe a) tagType
 maybe p = any [p $$ Just, eps Nothing ]
 
 export
@@ -232,10 +232,10 @@ lexer gram input =
 
 export 
 parser : {a : Type} 
-      -> {t : Type -> Type} 
-      -> {auto _ : Tag t} 
-      -> Grammar Nil a t 
-      -> (List (Token t)) 
+      -> {tagType : Type -> Type} 
+      -> {auto _ : Tag tagType} 
+      -> Grammar Nil a tagType 
+      -> (List (Token tagType)) 
       -> Either String a
 parser gram tokens = do
   typedGrammar <- typeCheck gram
