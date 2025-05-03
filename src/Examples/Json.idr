@@ -30,7 +30,7 @@ data JsonToken : Type -> Type where
   TNull : JsonToken ()
   TTrue : JsonToken Bool
   TFalse : JsonToken Bool
-  TDecimal : JsonToken Number
+  TNumber : JsonToken Number
   TString : JsonToken String
   TLBrace : JsonToken ()
   TRBrace : JsonToken ()
@@ -52,9 +52,9 @@ Tag JsonToken where
   compare TFalse _ = Leq
   compare _ TFalse = Geq
 
-  compare TDecimal TDecimal = Eql
-  compare TDecimal _ = Leq
-  compare _ TDecimal = Geq
+  compare TNumber TNumber = Eql
+  compare TNumber _ = Leq
+  compare _ TNumber = Geq
 
   compare TString TString = Eql
   compare TString _ = Leq
@@ -88,7 +88,7 @@ Tag JsonToken where
   show TNull = "TNull"
   show TTrue = "TTrue"
   show TFalse = "TFalse"
-  show TDecimal = "TDecimal"
+  show TNumber = "TNumber"
   show TString = "TString"
   show TLBrace = "TLBrace"
   show TRBrace = "TRBrace"
@@ -134,15 +134,15 @@ fullstringp : {n : Nat}
 fullstringp = (char '"' >>> star (compCharSet "\"") >>> char '"') $$ 
               (\((_, s), _) => Tok TString (pack s)) 
 
-decimal : {n : Nat} 
+number : {n : Nat} 
        -> {ct : Vect n Type} 
        -> Grammar ct (Token JsonToken) CharTag
-decimal = (plus digit >>> maybe (char '.' >>> plus digit)) $$ toDecimal
+number = (plus digit >>> maybe (char '.' >>> plus digit)) $$ toDecimal
   where 
     toDecimal : (List Char, Maybe (Char, List Char)) -> Token JsonToken
-    toDecimal (num, Nothing) = Tok TDecimal (In $ cast $ pack num)
+    toDecimal (num, Nothing) = Tok TNumber (In $ cast $ pack num)
     toDecimal (num, (Just (dot, frac))) = 
-      Tok TDecimal (Decimal $ cast $ pack (num ++ [dot] ++ frac))
+      Tok TNumber (Decimal $ cast $ pack (num ++ [dot] ++ frac))
     
 jsonToken : Grammar Nil (Token JsonToken) CharTag
 jsonToken = fix jsonToken'
@@ -160,7 +160,7 @@ jsonToken = fix jsonToken'
         , truep
         , falsep
         , fullstringp
-        , decimal
+        , number
         , skipSpace (var Z)
         ]
 
@@ -260,12 +260,12 @@ json = fix json'
                     JObject
           array = (between (tok TLBracket) (sepByComma (var Z)) (tok TRBracket)) 
                   $$ JArray
-          decimal = tok TDecimal $$ JNumber
+          number = tok TNumber $$ JNumber
           string = tok TString$$ JString
           null = tok TNull $$ always JNull 
           true = tok TTrue $$ always (JBool True) 
           false = tok TFalse $$ always (JBool False) in 
-      any [object, array, decimal, string, null, true, false]
+      any [object, array, number, string, null, true, false]
 
 export
 parseJSON : String -> Either String JsonValue
