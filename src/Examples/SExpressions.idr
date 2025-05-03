@@ -87,7 +87,7 @@ sexpression = fix sexpression'
     sexpression' : Grammar [Sexp] Sexp SToken
     sexpression' = 
       (tok Symbol $$ Sym) <|>
-      ((between (tok LParen) (star (var Z)) (tok RParen)) $$ Sequence)
+      ((between (tok LParen) (plus (var Z)) (tok RParen)) $$ Sequence)
 
 export 
 parseSexp : String -> Either String Sexp

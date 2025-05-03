@@ -20,7 +20,7 @@ s2 =
     "Empty braces" 
     (assertEq 
       (parseSexp "(())") 
-      (Right (Sequence [Sequence []])))
+      (Left "No Progress possible, unexpected token - RParen"))
 
 s3 : Test
 s3 = 
