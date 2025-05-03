@@ -137,11 +137,11 @@ fullstringp = (char '"' >>> star (compCharSet "\"") >>> char '"') $$
 number : {n : Nat} 
        -> {ct : Vect n Type} 
        -> Grammar ct (Token JsonToken) CharTag
-number = (plus digit >>> maybe (char '.' >>> plus digit)) $$ toDecimal
+number = (plus digit >>> maybe (char '.' >>> plus digit)) $$ toNumber
   where 
-    toDecimal : (List Char, Maybe (Char, List Char)) -> Token JsonToken
-    toDecimal (num, Nothing) = Tok TNumber (In $ cast $ pack num)
-    toDecimal (num, (Just (dot, frac))) = 
+    toNumber : (List Char, Maybe (Char, List Char)) -> Token JsonToken
+    toNumber (num, Nothing) = Tok TNumber (In $ cast $ pack num)
+    toNumber (num, (Just (dot, frac))) = 
       Tok TNumber (Decimal $ cast $ pack (num ++ [dot] ++ frac))
     
 jsonToken : Grammar Nil (Token JsonToken) CharTag
