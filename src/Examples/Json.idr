@@ -28,8 +28,8 @@ Eq Number where
 
 data JsonToken : Type -> Type where
   TNull : JsonToken ()
-  TTrue : JsonToken Bool
-  TFalse : JsonToken Bool
+  TTrue : JsonToken ()
+  TFalse : JsonToken ()
   TNumber : JsonToken Number
   TString : JsonToken String
   TLBrace : JsonToken ()
@@ -122,11 +122,11 @@ nullp = (char 'n' >>> char 'u' >>> char 'l' >>> char 'l') $$
 
 truep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 truep = (char 't' >>> char 'r' >>> char 'u' >>> char 'e') $$ 
-        always (Tok TTrue True)
+        always (Tok TTrue ())
 
 falsep : {ct : Vect n Type} -> Grammar ct (Token JsonToken) CharTag
 falsep = (char 'f' >>> char 'a' >>> char 'l' >>> char 's' >>> char 'e') $$ 
-          always (Tok TFalse False)
+          always (Tok TFalse ())
 
 fullstringp : {n : Nat} 
            -> {ct : Vect n Type} 
@@ -261,7 +261,7 @@ json = fix json'
           array = (between (tok TLBracket) (sepByComma (var Z)) (tok TRBracket)) 
                   $$ JArray
           number = tok TNumber $$ JNumber
-          string = tok TString$$ JString
+          string = tok TString $$ JString
           null = tok TNull $$ always JNull 
           true = tok TTrue $$ always (JBool True) 
           false = tok TFalse $$ always (JBool False) in 
