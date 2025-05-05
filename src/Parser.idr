@@ -70,6 +70,9 @@ map f p cs =
     (a, rest) <- p cs
     Right (f a , rest)
 
+fix : (Parser a tagType -> Parser a tagType) -> Parser a tagType
+fix f input = f (fix f) input
+
 data ParseEnv : (tagType : Type -> Type) -> Vect n Type -> Type where
   Empty  : ParseEnv tagType []
   (::) : Parser a tagType -> ParseEnv tagType as -> ParseEnv tagType (a :: as)
@@ -87,15 +90,15 @@ parse : {a : Type}
      -> Parser a tagType
 parse (MkGrammar _ (Eps g)) penv = eps g
 
+parse (MkGrammar _ (Tok c)) penv = token c
+
+parse (MkGrammar _ Bot) penv = bot
+
 parse (MkGrammar _ (Seq g1 g2)) penv =
   let p1 = parse g1 penv
       p2 = parse g2 penv
   in
   seq p1 p2
-
-parse (MkGrammar _ (Tok c)) penv = token c
-
-parse (MkGrammar _ Bot) penv = bot
 
 parse (MkGrammar _ (Alt g1 g2)) penv = 
   let p1 = parse g1 penv 
@@ -105,11 +108,7 @@ parse (MkGrammar _ (Alt g1 g2)) penv =
 
 parse (MkGrammar _ (Map g f)) penv = map f $ parse g penv 
 
-parse (MkGrammar _ (Fix g)) penv = 
-  fix (\p => parse g (p :: penv))
-    where
-      fix : (Parser a tagType -> Parser a tagType) -> Parser a tagType
-      fix f input = f (fix f) input
+parse (MkGrammar _ (Fix g)) penv = fix (\p => parse g (p :: penv))
 
 parse (MkGrammar _ (Var var)) penv = lookup var penv
 
