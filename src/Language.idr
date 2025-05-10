@@ -2,6 +2,19 @@ module Language
 
 import Data.SortedSet
 
+
+||| LangType represents essential properties of a grammar construct used in 
+||| parsing.
+|||
+||| @token   The type of tokens used in the grammar.
+||| @null    True if the language described can produce the empty string.
+||| @first   The set of tokens that can appear at the beginning of some string 
+||| in the language.
+||| @follow  The set of tokens which can follow the last character of a string 
+||| in the language.
+||| @guarded True if the type is guarded, used to track whether the type is in 
+||| guarded context or not and helpful while type chekcing.
+
 public export
 record LangType (token : Type) where 
   constructor MkLangType
@@ -26,6 +39,7 @@ Show token => Show (LangType token) where
     } 
     """
 
+||| Builds `LangType` for the grammar that accepts only the given token.
 export
 tok : {auto _ : Ord token} -> token -> LangType token
 tok c = 
@@ -36,6 +50,7 @@ tok c =
     , guarded = True
     }
 
+||| Builds `LangType` for the grammar that has just empty string.
 export
 eps : {auto _ : Ord token} -> LangType token
 eps =
@@ -46,6 +61,7 @@ eps =
     , guarded = True
     }
 
+||| Builds `LangType` for the grammar that is invalid.
 export 
 bot : {auto _ : Ord token} -> LangType token
 bot = 
@@ -56,6 +72,12 @@ bot =
     , guarded = True
     }
 
+||| Builds `LangType` for the sequential composition (concatenation) of two 
+||| grammars with `LangType` values `L1` and `L2`.
+||| However, for the composition to be valid, the two languages must be **apart**.
+||| This means they are syntactically disjoint to prevent parsing ambiguity:
+||| - `L1` must not be nullable.
+||| - `L1.follow` and `L2.first` must be disjoint.
 export
 seq : {auto _ : Show token} 
    -> {auto _ : Ord token} 
@@ -86,6 +108,12 @@ seq t1 t2 =
     apart : LangType token -> LangType token -> Bool
     apart t1 t2 = not (t1.null) && (intersection t1.follow t2.first == empty)
 
+||| Builds `LangType` for the alternation (choice) of two grammars with 
+||| `LangType` values `L1` and `L2`.
+||| For the choice to be well-formed and unambiguous, the two branches must be 
+||| **disjoint**:
+||| - They must not both accept the empty string.
+||| - Their `first` sets must be disjoint.
 export 
 alt : {auto _ : Show token} 
    -> {auto _ : Ord token} 
@@ -114,6 +142,14 @@ alt t1 t2 =
     disjoint t1 t2 = 
       not (t1.null && t2.null) && (intersection t1.first t2.first == empty)
 
+||| Builds the `LangType` for the recursive grammars.
+||| Computes the least fixed point of a language transformer function `f`,
+||| representing a recursive grammar definition.
+||| The fixpoint iteration begins with the least language:
+||| - Not nullable (`null = False`)
+||| - Empty `first` and `follow` sets
+||| - Not guarded (`guarded = False`)
+||| The iteration proceeds until a fixed point is reached.
 export
 fix : {auto _ : Ord token} 
    -> (f : Either String (LangType token) -> Either String (LangType token)) 
