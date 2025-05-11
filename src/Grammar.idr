@@ -7,6 +7,14 @@ import Var
 import Token
 
 mutual
+  ||| A GADT indexed by `ct`, `a` and `tagType` representing grammar combinators.
+  |||
+  ||| This data type defines the structure of grammar constructs (without metadata).
+  ||| Used inside the `Grammar` record.
+  |||
+  ||| @ct       The context of bound variables.
+  ||| @a        The result type of the grammar.
+  ||| @tagType  A type-indexed tag constructor.
   public export
   data GrammarType : {n : Nat} 
                   -> (ct : Vect n Type) 
@@ -40,6 +48,15 @@ mutual
 
       Var : Var a ct -> GrammarType ct a tagType
 
+  ||| A record indexed by `ct`, `a` and `tagType` representing grammar.
+  |||
+  ||| Fields:
+  ||| - `lang`: Static analysis info (nullable, first, follow, guarded).
+  ||| - `gram`: The actual grammar type.
+  |||
+  ||| @ct       The type context for bound variables.
+  ||| @a        The result type of the grammar.
+  ||| @tagType  A type-indexed tag constructor.
   public export
   record Grammar (ct : Vect n Type) (a : Type) (tagType : Type -> Type) where
     constructor MkGrammar 
@@ -90,6 +107,17 @@ varToFin : {ct : Vect n Type} -> Var a ct -> Fin n
 varToFin Z = FZ
 varToFin (S x) = FS (varToFin x)
 
+
+||| Computes type information `LangType` (nullable, first, follow, guarded) for 
+||| a grammar and type check as well.
+|||
+||| Traverses the grammar structure and assigns static language properties.
+|||
+||| @ct       The type context for bound variables.
+||| @a        The result type of the grammar.
+||| @tagType  A type-indexed tag constructor.
+||| @env      The environment providing `LangType` values for bound variables 
+|||           in the context.
 export
 typeof : {a : Type } 
       -> {ct : Vect n Type} 
@@ -139,6 +167,14 @@ typeof env (MkGrammar _ (Fix g)) =
 typeof env (MkGrammar _ (Var x)) = 
   Right (MkGrammar (index (varToFin x) env) (Var x))
 
+
+||| Typecheck and build static language information on a closed grammar.
+||| 
+|||
+||| @ct       The type context for bound variables (empty for closed grammars).
+||| @a        The result type of the grammar.
+||| @tagType  A type-indexed tag constructor.
+||| @gram     Grammar to type check
 export
 typeCheck : {a : Type} 
          -> {tagType : Type -> Type} 
@@ -185,6 +221,14 @@ reindexVar var f prf =
       hIsInCt2 = trans (sym (prf (varToFin var))) hIsInCt1 in
   varFromFin (f (varToFin var))
 
+||| Maps grammar from a smaller context `ct1` to `ct2`.
+|||
+||| @ct1     Original type context of the grammar.
+||| @ct2     New type context after renaming.
+||| @f       Function mapping indices in `ct1` to indices in `ct2`.
+||| @prf     Proof that the types at corresponding positions are equal.
+||| @tagType Type-indexed tag constructor used for tokens.
+||| @k       Result type of the grammar.
 export
 mapGrammar : {m, n : Nat} 
           -> {ct1 : Vect m Type} 
@@ -220,6 +264,15 @@ mapGrammar f prf (MkGrammar l g) = MkGrammar l (mapGramType f prf g)
     mapGramType f prf (Var v) = Var (reindexVar v f prf)
 
 
+
+||| Weakens a grammar by extending its context with a new variable at the front.
+||| 
+||| All variable references are shifted forward by one position.
+|||
+||| @z        The new type to prepend to the context.
+||| @ct       The original context.
+||| @k        The result type of the grammar.
+||| @tagType  A type-indexed tag constructor.
 export
 wekeanGrammar : {z : Type} 
              -> {m : Nat} 
