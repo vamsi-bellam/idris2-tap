@@ -7,6 +7,9 @@ clean:
 build: 
 	idris2 --build parser.ipkg
 
+docs:
+	idris2 --mkdoc parser.ipkg
+	
 test:
 	idris2 --build test.ipkg
 	echo "Running Tests...\n"
