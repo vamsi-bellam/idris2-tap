@@ -1,4 +1,4 @@
-# parser
+# Typed, Algebraic Parser in Idris2
 
 Unstaged implementation of the paper - [A Typed, Algebraic Approach to Parsing](https://www.cl.cam.ac.uk/~jdy22/papers/a-typed-algebraic-approach-to-parsing.pdf) by Neelakantan R. Krishnaswami and Jeremy Yallop.
 
